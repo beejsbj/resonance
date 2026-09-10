@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10131d"><title>Resonance · a musical idle world</title><meta name="description" content="Touch, listen, and grow a world of sound. A playable musical incremental prototype."><style>:root{color-scheme:dark;--bg:#10131d;--panel:#171c28;--line:#ffffff10;--text:#eeeef4;--muted:#929cae;--accent:#b0e8db;--accent-rgb:176,232,219;--bloom:#b0e8db;--string:#dfb3ee;--bell:#f4ce9e;--pulse:#e7aebf;--pad:#a6bfee}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select{font:inherit}button,a,input,select{-webkit-tap-highlight-color:transparent}button{cursor:pointer;color:inherit}button:disabled{cursor:default}button:focus-visible,a:focus-visible,canvas:focus-visible{outline:2px solid var(--accent);outline-offset:4px}button{transition:background .18s ease,border-color .18s ease,transform .15s ease}button:active:not(:disabled){transform:scale(.975)}button[hidden],[hidden]{display:none!important}.topbar{height:82px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:0 36px;background:#11151ee8}.wordmark{text-decoration:none;color:#f4f2ee;display:flex;align-items:center;gap:12px;font:32px Georgia,serif;letter-spacing:-1.4px}.brand-mark{color:var(--accent);font:40px Georgia;line-height:1}.edition{font:10px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:2px;color:#8995a9;margin-left:18px;border-left:1px solid #ffffff20;padding-left:22px}.top-actions{display:flex;align-items:center;gap:10px}.icon-button,.quiet-button{border:1px solid #ffffff13;border-radius:50%;background:transparent;width:40px;height:40px;color:#c4cbd7}.quiet-button{width:auto;border-radius:9px;padding:0 15px;font-size:13px}.quiet-button span{color:var(--accent);padding-left:10px}.badge{font-size:12px;color:var(--accent);margin-right:8px}.game-layout{display:grid;grid-template-columns:minmax(0,1fr) 378px;max-width:1920px;margin:auto;height:calc(100dvh - 82px);min-height:630px}.world-stage{position:relative;display:flex;flex-direction:column;min-width:0;overflow:hidden;background:radial-gradient(ellipse at 45% 43%,#202b3633,transparent 65%)}.stage-top{display:flex;align-items:flex-start;justify-content:space-between;padding:36px 40px 0;position:absolute;z-index:2;width:100%;pointer-events:none}.eyebrow{font-size:12px;letter-spacing:2px;color:var(--muted);font-weight:600}h1{font:clamp(24px,2.7vw,41px)/1.2 Georgia,serif;letter-spacing:-.7px;margin:13px 0;color:#e5e8ed;font-weight:400}.scale-tag{margin-top:8px;display:flex;align-items:center;gap:9px;border:1px solid #ffffff10;border-radius:30px;padding:7px 12px;font-size:12px;color:#aab7c5;white-space:nowrap}.live-dot{width:5px;height:5px;background:var(--accent);border-radius:50%;box-shadow:0 0 10px #a8e7cc55}.stage-wrap{position:relative;flex:1;min-height:430px}canvas{width:100%;height:100%;display:block;position:absolute;inset:0;touch-action:none;cursor:crosshair}.start-prompt{position:absolute;top:57%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:4;white-space:nowrap}.awaken-button{display:flex;align-items:center;gap:12px;border:1px solid #b0e8db44;background:#182b2de8;color:#d5f6ee;padding:13px 23px;border-radius:40px;font-size:15px;box-shadow:0 0 50px #b0e8db0a}.start-symbol{font-size:20px;color:var(--accent)}.start-prompt p{font-size:12px;color:#85989d;margin:12px 0}.node-label{position:absolute;text-align:center;pointer-events:none;transform:translateX(-50%);opacity:0;transition:opacity .4s ease;white-space:nowrap}.node-label span{display:block;font-size:12px;color:#d2d9e2;letter-spacing:.5px}.node-label small{font-size:12px;color:#748495}.node-label.visible{opacity:.8}.world-arrival{pointer-events:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:34px Georgia,serif;color:var(--accent);opacity:0;text-align:center;transition:opacity .6s ease;text-shadow:0 0 60px #10131d}.world-arrival.visible{opacity:1}.stage-bottom{position:relative;z-index:2;padding:8px 28px 25px;text-align:center;background:linear-gradient(transparent,#10131da0)}#stage-hint{font-size:12px;color:#8e9daa;margin:6px 0 19px}.play-keys{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}.play-keys button{background:#ffffff03;border:1px solid #ffffff10;border-radius:8px;padding:8px 10px;font-size:12px;display:flex;align-items:center;gap:6px;color:#c5cdd7;min-height:36px}.play-keys button:disabled{opacity:.28}.play-keys kbd{font:9px monospace;color:#667180;margin-left:4px}.voice-dot{width:6px;height:6px;border-radius:50%;display:inline-block;background:var(--accent)}.voice-dot.string{background:var(--string)}.voice-dot.bell{background:var(--bell)}.voice-dot.pulse{background:var(--pulse)}.voice-dot.pad{background:var(--pad)}.listening-controls{display:flex;gap:24px;align-items:center;justify-content:center;margin-top:23px;color:#85909f;font-size:12px}.listening-controls label{display:flex;align-items:center;gap:8px}.listening-controls input{width:74px;height:3px}.text-button{border:0;background:none;color:#9eacbb;padding:7px 0;font-size:12px;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#ffffff25}input[type=range]{accent-color:var(--accent);cursor:pointer}.workshop{background:linear-gradient(160deg,#1a202c,#151a25);border-left:1px solid #ffffff0c;display:flex;flex-direction:column;min-height:0}.balance-block{padding:28px 28px 24px;border-bottom:1px solid var(--line)}.balance-caption{display:flex;justify-content:space-between}.legacy-badge{font-size:12px;color:#e3c392}.balance-line{display:flex;align-items:center;gap:14px;margin:5px 0}.balance-line>span:first-child{font:50px/1.25 Georgia,serif;letter-spacing:-1px;font-variant-numeric:tabular-nums}.resonance-symbol{color:var(--accent);font-size:29px}.income-line{display:flex;justify-content:space-between;color:#8492a5;font-size:12px}.income-line strong{font-weight:500;color:#b5c0cf}.journey-progress{margin-top:22px}.journey-progress>div:first-child{display:flex;justify-content:space-between;font-size:12px;color:#8393a5;margin-bottom:8px}.progress-track{height:3px;background:#ffffff08;border-radius:8px;overflow:hidden}.progress-track>div{height:100%;width:0;background:var(--accent);box-shadow:0 0 12px #b0e8db30;transition:width .25s ease}.tabs{display:flex;padding:0 28px;border-bottom:1px solid var(--line);gap:28px;flex-shrink:0}.tabs button{padding:15px 0 12px;border:0;border-bottom:2px solid transparent;background:transparent;color:#8390a3;font-size:13px}.tabs button.active{border-bottom-color:var(--accent);color:#e2e9f0}.tabs button span{font-size:12px;margin-left:4px;color:#6e8295}.workshop-content{overflow:auto;flex:1;scrollbar-width:thin;scrollbar-color:#ffffff15 transparent;overscroll-behavior:contain}.tab-panel{padding:23px 24px}.section-intro{margin-bottom:18px}.section-intro h2,.upgrades-heading h2{font:19px Georgia,serif;margin:0 0 5px;color:#dfe5ed}.section-intro p{font-size:12px;color:#8492a6;line-height:1.7;margin:0}.voice-card{position:relative;border:1px solid #ffffff0a;border-radius:12px;margin:10px 0;background:#ffffff02;overflow:hidden}.voice-card.locked{opacity:.5}.voice-card-top{display:flex;align-items:center;gap:12px;padding:14px 14px 8px}.voice-emblem{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:23px;color:var(--voice-color);background:color-mix(in srgb,var(--voice-color) 7%,transparent);border:1px solid color-mix(in srgb,var(--voice-color) 15%,transparent)}.voice-title{flex:1}.voice-title h3{font-size:13px;margin:0;font-weight:500;color:#d6dfeb}.voice-title p{font-size:12px;color:#7d8da3;margin:2px 0}.voice-count{font:24px Georgia,serif;color:#8796aa}.voice-description{font-size:12px;color:#8b9aad;margin:0;padding:0 14px 11px;line-height:1.6}.buy-button{width:calc(100% - 24px);margin:0 12px 12px;display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border:1px solid #b0e8db28;background:#b0e8db0b;border-radius:7px;color:#c8e9de;font-size:12px;min-height:37px}.buy-button:disabled{border-color:#ffffff09;background:#ffffff03;color:#65768b}.buy-button:not(:disabled):hover{background:#b0e8db1b}.buy-button span:last-child{font-variant-numeric:tabular-nums;letter-spacing:.3px}.card-progress{height:2px;background:#ffffff03}.card-progress>div{height:100%;background:var(--voice-color);opacity:.45;transition:width .25s}.upgrades-heading{margin-top:26px;display:flex;justify-content:space-between;align-items:center}.upgrades-heading span{font-size:12px;color:#64758b;letter-spacing:.8px}.upgrade-card{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center}.upgrade-card>div{flex:1}.upgrade-card h3{font-size:12px;font-weight:500;margin:0;color:#c7d1df}.upgrade-card p{font-size:12px;color:#8290a2;margin:4px 0 0}.upgrade-card button{padding:8px 10px;min-width:74px;background:#ffffff05;border:1px solid #ffffff15;border-radius:7px;font-size:12px;color:#b6d8cd}.upgrade-card button:disabled{color:#647286;border-color:#ffffff08}.milestone-note{display:flex;gap:10px;margin-top:19px;color:#6b8291}.milestone-note>span{color:#a7b99d;font-size:17px}.milestone-note p{font-size:12px;line-height:1.8;margin:0}.workshop-footer{padding:12px 22px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);font-size:12px;color:#6e7e92}.tiny-orbit{color:var(--accent);font-size:18px}.prototype-label{margin-left:auto;font-size:12px;letter-spacing:1px}.world-card{border:1px solid #ffffff10;border-radius:12px;padding:19px 17px;margin-bottom:14px;background:radial-gradient(ellipse at top right,color-mix(in srgb,var(--world-color) 12%,transparent),transparent 75%)}.world-card.current{border-color:color-mix(in srgb,var(--world-color) 45%,transparent)}.world-card .world-card-top{display:flex;justify-content:space-between;font-size:12px;letter-spacing:1px;color:var(--world-color)}.world-card h3{font:25px Georgia;margin:11px 0 6px}.world-card p{font-size:12px;color:#93a0b2;line-height:1.7}.world-card button{margin-top:5px;width:100%}.secondary-button,.primary-button{padding:10px 12px;border:1px solid #ffffff19;background:#ffffff05;border-radius:8px;font-size:12px}.secondary-button:disabled{opacity:.35}.primary-button{background:var(--accent);color:#162a28;border-color:var(--accent)}.rebirth-card{margin-top:30px;padding-top:25px;border-top:1px solid var(--line)}.rebirth-card h3{font:23px Georgia;margin:12px 0}.rebirth-card p{font-size:12px;color:#8f9cae}.rebirth-card button{width:100%;margin:8px 0}.rebirth-card small{font-size:12px;color:#8290a4}.footnote{font-size:12px;color:#6f8095;line-height:1.8;margin-top:22px}.tinker-group{margin:22px 0}.tinker-group>label{display:flex;justify-content:space-between;font-size:12px;color:#bcc8d7;margin-bottom:11px}.tinker-group small{display:block;font-size:12px;color:#788b9e;line-height:1.8;margin-top:9px}.tinker-group input[type=range]{width:100%}.tinker-group select{width:100%;padding:9px 12px;background:#111824;border:1px solid #ffffff18;border-radius:7px;color:#c6d1df}.segmented{display:flex;border:1px solid #ffffff13;border-radius:8px;padding:3px;gap:4px}.segmented button{flex:1;padding:7px;background:transparent;border:0;border-radius:5px;color:#91a0b3;font-size:12px}.segmented button.active{background:#b0e8db18;color:var(--accent)}.tinker-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.scenario-list{border:1px solid var(--line);border-radius:9px;overflow:hidden}.scenario-list button{display:block;width:100%;padding:12px;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);font-size:12px}.scenario-list button:last-child{border-bottom:0}.scenario-list button span{display:block;font-size:12px;color:#7f90a3;margin-top:4px}.state-readout{border-top:1px solid var(--line);padding-top:15px}.state-readout h3{font:17px Georgia;color:#b8c4d1}.state-readout dl{display:grid;grid-template-columns:1fr auto;gap:9px;font-size:12px;color:#7d90a4}.state-readout dd{margin:0;color:#b0c4d4;font-variant-numeric:tabular-nums}.danger{color:#bfa0a8}.download-link{font-size:12px;color:#9ab9b4}#toast{position:fixed;bottom:28px;left:calc((100% - 378px)/2);transform:translate(-50%,10px);padding:12px 20px;border:1px solid #b0e8db25;border-radius:12px;background:#1c2b31f5;backdrop-filter:blur(10px);color:#d0e9e3;font-size:13px;pointer-events:none;opacity:0;transition:opacity .2s ease,transform .2s ease;z-index:30;max-width:90vw;text-align:center}#toast.visible{opacity:1;transform:translate(-50%,0)}dialog{background:#1b2330;color:var(--text);border:1px solid #ffffff20;border-radius:18px;padding:28px;max-width:390px;width:calc(100% - 40px)}dialog::backdrop{background:#070b14bb;backdrop-filter:blur(5px)}dialog h2{font:27px Georgia;margin-top:0}dialog p{color:#9eafc3;font-size:14px;line-height:1.7}dialog>div{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+@media(min-width:1500px){.game-layout{grid-template-columns:minmax(0,1fr) 420px}.workshop .tab-panel{padding-left:30px;padding-right:30px}}
+@media(max-width:1050px){.game-layout{grid-template-columns:minmax(0,1fr) 330px}.stage-top{padding:26px 26px 0}.scale-tag{font-size:12px;padding:6px 8px}.stage-top h1{font-size:29px}.listening-controls{gap:15px}.listening-controls input{width:55px}.play-keys{gap:5px}.play-keys button{font-size:12px;padding:7px}.play-keys kbd{display:none}.stage-bottom{padding-left:15px;padding-right:15px}.tabs{gap:23px}.balance-block{padding:25px 24px}.edition{display:none}}
+@media(max-width:760px){.topbar{height:66px;padding:0 18px}.wordmark{font-size:27px;gap:7px}.brand-mark{font-size:32px}.icon-button{height:35px;width:35px}.quiet-button{height:35px;padding:0 10px;font-size:12px}.top-actions{gap:7px}.badge{font-size:12px;margin:0}.game-layout{display:block;height:auto;min-height:0}.world-stage{height:570px;height:clamp(460px,65dvh,640px)}.stage-top{padding:23px 23px 0}.stage-top h1{font-size:28px}.eyebrow{font-size:12px;letter-spacing:1.6px}.scale-tag{font-size:12px;margin-top:0}.stage-wrap{min-height:0}.stage-bottom{padding:0 14px 17px}#stage-hint{font-size:12px;margin:6px 0 11px}.play-keys button{font-size:12px;min-height:34px;padding:6px 9px}.listening-controls{gap:17px;margin-top:15px;font-size:12px}.listening-controls .text-button{font-size:12px}.start-prompt{top:61%}.awaken-button{font-size:14px;padding:11px 18px}.start-prompt p{font-size:12px}.workshop{border-left:0;border-top:1px solid var(--line)}.balance-block{padding:19px 23px 18px;position:relative}.balance-line>span:first-child{font-size:42px}.income-line{position:absolute;right:23px;top:33px;display:flex;flex-direction:column;gap:5px;align-items:flex-end;font-size:12px}.balance-line{margin:1px 0}.journey-progress{margin-top:10px}.tabs{position:sticky;top:0;background:#19202deF;z-index:6;backdrop-filter:blur(12px);padding:0 23px;gap:34px}.tabs button{font-size:13px;padding:13px 0 11px}.workshop-content{overflow:visible}.tab-panel{padding:22px 23px}.section-intro h2{font-size:21px}.section-intro p{font-size:12px}.voice-card-top{padding:15px 15px 8px}.voice-title h3{font-size:14px}.voice-title p{font-size:12px}.voice-description{font-size:12px}.buy-button{font-size:12px;min-height:42px}.upgrade-card{padding:16px 0}.upgrade-card h3{font-size:13px}.upgrade-card p{font-size:12px}.upgrade-card button{min-height:40px}.node-label span{font-size:12px}.node-label small{font-size:12px}#toast{left:50%;bottom:18px;min-width:230px;font-size:12px}.workshop-footer{padding-bottom:max(16px,env(safe-area-inset-bottom))}.world-arrival{font-size:27px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+.buy-button,.upgrade-card button,.tabs button,.secondary-button,.primary-button{font-size:14px}.voice-title h3{font-size:15px}.world-card p,.section-intro p{font-size:14px}.voice-description{font-size:13px}.voice-title p{font-size:12px}.edition{font-size:12px}.play-keys button{min-height:40px}.icon-button{min-width:40px;min-height:40px}@media(max-width:760px){.scale-tag{position:absolute;right:23px;top:18px}.stage-top h1{font-size:27px}.top-actions{gap:5px}.quiet-button{font-size:12px}.play-keys button{padding:6px 7px}.listening-controls{gap:12px}.listening-controls input{width:50px}.world-stage{height:clamp(490px,68dvh,660px)}.start-prompt{top:63%}.node-label small{display:none}}@media(max-width:370px){.wordmark{font-size:24px}.topbar{padding:0 12px}.brand-mark{display:none}.badge{display:none}.play-keys{gap:4px}.play-keys button{font-size:11px;padding:6px}.listening-controls{gap:10px}.listening-controls label{gap:5px}.listening-controls input{width:40px}.listening-controls .text-button{font-size:11px}}
+</style></head>
+<body>
+<header class="topbar"><a class="wordmark" href="#" aria-label="Resonance home"><span class="brand-mark">◌</span> resonance<span class="edition">PLAY STUDY 01</span></a><div class="top-actions"><span id="modified" class="badge" hidden>Tinkering</span><button class="icon-button" id="pause" aria-label="Pause music" title="Pause music">Ⅱ</button><button class="icon-button" id="mute" aria-label="Mute sound" title="Mute sound">♫</button><button class="quiet-button" id="tinker-shortcut">Tinker <span>↗</span></button></div></header>
+<main class="game-layout">
+<section class="world-stage" aria-label="Musical world">
+<div class="stage-top"><div><span class="eyebrow" id="world-index">WORLD 01 / AWAKENING</span><h1 id="world-heading">A little sound.<br>A world beginning.</h1></div><div class="scale-tag"><span class="live-dot"></span><span id="scale-label">D pentatonic</span></div></div>
+<div class="stage-wrap" id="stage-wrap"><canvas id="stage" tabindex="0" role="application" aria-label="Musical stage. Tap to play bloom. Purchased instruments can be played with keys 1 to 5. Hold or sweep to shape sounds."></canvas><div id="start-prompt" class="start-prompt"><button id="awaken" class="awaken-button"><span class="start-symbol">◉</span>Touch to awaken</button><p>Sound on. No wrong notes.</p></div><div class="node-label" data-label="bloom"><span>Bloom</span><small>tap · hold</small></div><div class="node-label" data-label="string"><span>Strings</span><small>sweep · pluck</small></div><div class="node-label" data-label="bell"><span>Bells</span><small>tap · scatter</small></div><div class="node-label" data-label="pulse"><span>Pulse</span><small>tap · drum</small></div><div class="node-label" data-label="pad"><span>Atmosphere</span><small>hold · drift</small></div><div id="world-arrival" class="world-arrival" aria-live="polite"></div></div>
+<div class="stage-bottom"><p id="stage-hint">Your touch makes sound. Your sound becomes a world.</p><div class="play-keys" aria-label="Play instruments"><button data-play="bloom" title="Play bloom (1)"><span class="voice-dot bloom"></span>Bloom <kbd>1</kbd></button><button data-play="string" title="Play strings (2)"><span class="voice-dot string"></span>Strings <kbd>2</kbd></button><button data-play="bell" title="Play bells (3)"><span class="voice-dot bell"></span>Bells <kbd>3</kbd></button><button data-play="pulse" title="Play pulse (4)"><span class="voice-dot pulse"></span>Pulse <kbd>4</kbd></button><button data-play="pad" title="Play atmosphere (5)"><span class="voice-dot pad"></span>Air <kbd>5</kbd></button></div><div class="listening-controls"><label>Volume <input id="volume" type="range" min="0" max="100" value="65" aria-label="Volume"></label><label>Space <input id="density" type="range" min="15" max="100" value="65" aria-label="Musical density"><span>Full</span></label><button id="motion" class="text-button" aria-pressed="false">Gentle motion</button></div></div>
+</section>
+<aside class="workshop" aria-label="Grow your musical world"><div class="balance-block"><div class="balance-caption"><span class="eyebrow">RESONANCE</span><span id="legacy-badge" class="legacy-badge" hidden></span></div><div class="balance-line"><span id="balance">0</span><span class="resonance-symbol">✧</span></div><div class="income-line"><span><strong id="rate">0</strong> / second</span><span>+<strong id="tap-value">1</strong> / touch</span></div><div class="journey-progress"><div><span id="next-goal">Discover The Current</span><span id="goal-fraction">0 / 400</span></div><div class="progress-track"><div id="goal-progress"></div></div></div></div>
+<nav class="tabs" aria-label="Workshop sections"><button data-tab="voices" class="active" aria-selected="true">Grow</button><button data-tab="worlds" aria-selected="false">Worlds <span id="world-count">1/3</span></button><button data-tab="tinker" aria-selected="false">Tinker</button></nav>
+<div class="workshop-content"><section id="tab-voices" class="tab-panel"><div class="section-intro"><h2>Give your world a voice</h2><p>Each voice plays itself and earns Resonance.</p></div><div id="voice-shop"></div><div class="upgrades-heading"><h2>Make it grow</h2><span>PERMANENT THIS CYCLE</span></div><div id="upgrade-shop"></div><div class="milestone-note"><span>✦</span><p>At 5, 10, and 25 of a voice, its production doubles. Your music grows richer, too.</p></div></section>
+<section id="tab-worlds" class="tab-panel" hidden><div class="section-intro"><h2>Find a different feeling</h2><p>New modes, colours, and musical behaviour. Travel freely; keep everything you have grown.</p></div><div id="world-shop"></div><div class="rebirth-card"><span class="eyebrow">THE NEXT BEGINNING</span><h3>Let it resonate again</h3><p>At 8,000 earned this cycle, begin again with a lasting production bonus. Your first world returns; your Legacy remains.</p><button id="prestige" class="secondary-button">Begin a new cycle</button><small id="prestige-status"></small></div><p class="footnote">These are sound studies, not depictions of musical cultures. History and traditions belong to a later exploration.</p></section>
+<section id="tab-tinker" class="tab-panel" hidden><div class="section-intro"><h2>Follow your curiosity</h2><p>This is a playable prototype. Change the pace, jump ahead, and feel what works.</p></div><div class="tinker-group"><label>Progression speed</label><div class="segmented" id="speed-controls"><button data-speed="1" class="active">1×</button><button data-speed="5">5×</button><button data-speed="20">20×</button></div><small>Speeds up earnings, not the musical clock.</small></div><div class="tinker-group"><label for="tempo">Tempo <output id="tempo-value">72 BPM</output></label><input id="tempo" type="range" min="45" max="130" value="72"></div><div class="tinker-group"><label for="root">Root note</label><select id="root"><option value="48">C</option><option value="50" selected>D</option><option value="52">E</option><option value="53">F</option><option value="55">G</option><option value="57">A</option></select></div><div class="tinker-grid"><button id="grant" class="secondary-button">+500 Resonance</button><button id="skip" class="secondary-button">Listen an hour later</button></div><div class="tinker-group"><label>Jump into a moment</label><div class="scenario-list"><button data-scenario="first">First sound <span>Start from silence ↗</span></button><button data-scenario="ensemble">Small ensemble <span>Five voices finding each other ↗</span></button><button data-scenario="radiance">Full bloom <span>A developed world ↗</span></button></div><small>Each scene replaces this prototype run. Nothing is saved automatically.</small></div><div class="state-readout"><h3>Your world, by the numbers</h3><dl><dt>Earned this cycle</dt><dd id="stat-earned">0</dd><dt>Touches</dt><dd id="stat-taps">0</dd><dt>World age</dt><dd id="stat-age">0:00</dd><dt>Legacy</dt><dd id="stat-legacy">0</dd><dt>Sound</dt><dd id="stat-audio">Waiting for touch</dd></dl></div><button id="reset" class="text-button danger">Reset this experiment</button><p class="footnote">Does growing your income make growing the music feel rewarding? That is what this study explores. Refreshing starts a new run.</p><a class="download-link" href="./prototype.html" download="resonance-prototype.html">Download the standalone prototype ↓</a></section></div>
+<div class="workshop-footer"><span class="tiny-orbit">◌</span><span id="footer-status">A little world, entirely yours.</span><span class="prototype-label">PROTOTYPE</span></div></aside>
+</main><div id="toast" role="status" aria-live="polite"></div><dialog id="confirm-dialog"><h2 id="confirm-title">Begin again?</h2><p id="confirm-body"></p><div><button id="confirm-cancel" class="secondary-button">Keep playing</button><button id="confirm-ok" class="primary-button">Begin again</button></div></dialog>
+<script>/* Resonance economy: portable, dependency-free, and deliberately DOM-free. */
+(function (root) {
+  'use strict';
+
+  var VOICES = [
+    { id: 'bloom', name: 'Bloom', description: 'A warm first pulse of resonance.', baseCost: 12, baseRate: 0.35, unlockAt: 0 },
+    { id: 'string', name: 'String', description: 'A singing harmonic thread.', baseCost: 45, baseRate: 1.35, unlockAt: 20 },
+    { id: 'bell', name: 'Bell', description: 'A clear tone that opens the air.', baseCost: 500, baseRate: 4.2, unlockAt: 220 },
+    { id: 'pulse', name: 'Pulse', description: 'A steady low rhythm.', baseCost: 1800, baseRate: 12, unlockAt: 700 },
+    { id: 'pad', name: 'Pad', description: 'A wide field of sustained sound.', baseCost: 5000, baseRate: 32, unlockAt: 1800 }
+  ];
+
+  var WORLDS = [
+    { id: 'awakening', name: 'Awakening', mode: 'pentatonic', root: 50, bpm: 72, unlockAt: 0, description: 'The first room of listening.' },
+    { id: 'current', name: 'Current', mode: 'dorian', root: 50, bpm: 88, unlockAt: 400, description: 'A moving, tidal harmonic field.' },
+    { id: 'radiance', name: 'Radiance', mode: 'lydian', root: 55, bpm: 108, unlockAt: 2000, description: 'A bright horizon of overtones.' }
+  ];
+
+  var UPGRADES = [
+    { id: 'touch', name: 'Sensitive Touch', description: 'Each tap carries more resonance.', baseCost: 25, growth: 2.15, max: 20 },
+    { id: 'ensemble', name: 'Ensemble Listening', description: 'All voices resonate together more strongly.', baseCost: 180, growth: 2.65, max: 10 }
+  ];
+
+  var voiceById = function (id) {
+    for (var i = 0; i < VOICES.length; i += 1) if (VOICES[i].id === id) return VOICES[i];
+    return null;
+  };
+  var worldById = function (id) {
+    for (var i = 0; i < WORLDS.length; i += 1) if (WORLDS[i].id === id) return WORLDS[i];
+    return null;
+  };
+  var upgradeById = function (id) {
+    for (var i = 0; i < UPGRADES.length; i += 1) if (UPGRADES[i].id === id) return UPGRADES[i];
+    return null;
+  };
+  var validState = function (s) { return s && typeof s === 'object' && isFinite(s.resonance) && isFinite(s.totalEarned) && s.levels && s.upgrades; };
+  var addEarned = function (s, amount) { s.resonance += amount; s.totalEarned += amount; s.runEarned += amount; };
+
+  function initial() {
+    return { resonance: 0, totalEarned: 0, runEarned: 0, levels: { bloom: 0, string: 0, bell: 0, pulse: 0, pad: 0 }, upgrades: { touch: 0, ensemble: 0 }, world: 'awakening', legacy: 0, totalTaps: 0, elapsed: 0 };
+  }
+
+  function cost(state, id) {
+    var v = voiceById(id); var level = state && state.levels ? state.levels[id] : 0;
+    if (!v || !isFinite(level) || level < 0) return Infinity;
+    return Math.ceil(v.baseCost * Math.pow(1.15, level));
+  }
+
+  function rate(state) {
+    if (!validState(state)) return 0;
+    var total = 0;
+    for (var i = 0; i < VOICES.length; i += 1) {
+      var v = VOICES[i], level = Math.max(0, Number(state.levels[v.id]) || 0);
+      var milestone = (level >= 25 ? 2 : 1) * (level >= 10 ? 2 : 1) * (level >= 5 ? 2 : 1);
+      total += level * v.baseRate * milestone;
+    }
+    return total * (1 + (Math.max(0, Number(state.upgrades.ensemble) || 0) * 0.12)) * (1 + (Math.max(0, Number(state.legacy) || 0) * 0.03));
+  }
+
+  function tapValue(state) {
+    if (!validState(state)) return 0;
+    return (1 + (Math.max(0, Number(state.upgrades.touch) || 0) * 0.8)) * (1 + (Math.max(0, Number(state.legacy) || 0) * 0.03));
+  }
+
+  function phase(state) {
+    if (!validState(state)) return { name: 'still', value: 0 };
+    var value = (state.elapsed * 0.07 + state.totalEarned * 0.003) % 1;
+    var names = ['still', 'stirring', 'gathering', 'resonant'];
+    return { name: names[Math.min(3, Math.floor(value * 4))], value: value };
+  }
+
+  function canBuy(state, id) {
+    var v = voiceById(id);
+    return !!(validState(state) && v && state.totalEarned >= v.unlockAt && state.resonance >= cost(state, id));
+  }
+
+  function buy(state, id) {
+    var v = voiceById(id);
+    if (!validState(state) || !v) return { ok: false, message: 'Unknown voice.' };
+    if (state.totalEarned < v.unlockAt) return { ok: false, message: v.name + ' is not yet awakened.' };
+    var price = cost(state, id);
+    if (state.resonance < price) return { ok: false, message: 'Not enough resonance.' };
+    state.resonance -= price; state.levels[id] += 1;
+    return { ok: true, message: v.name + ' joined the ensemble.', cost: price, level: state.levels[id] };
+  }
+
+  function tap(state, strength) {
+    if (!validState(state) || strength === undefined) strength = strength === undefined ? 1 : strength;
+    if (!validState(state) || !isFinite(strength) || strength < 0) return { ok: false, message: 'Tap strength must be finite and non-negative.' };
+    var earned = tapValue(state) * strength; addEarned(state, earned); state.totalTaps += 1;
+    return { ok: true, earned: earned, message: 'Resonance gathered.' };
+  }
+
+  function tick(state, seconds) {
+    if (!validState(state) || !isFinite(seconds) || seconds < 0) return { ok: false, message: 'Time must be finite and non-negative.' };
+    var earned = rate(state) * seconds; addEarned(state, earned); state.elapsed += seconds;
+    return { ok: true, earned: earned, message: earned ? 'The ensemble resonated.' : 'The room listened.' };
+  }
+
+  function setWorld(state, id) {
+    var w = worldById(id);
+    if (!validState(state) || !w) return { ok: false, message: 'Unknown world.' };
+    if (state.totalEarned < w.unlockAt) return { ok: false, message: w.name + ' is still beyond reach.' };
+    state.world = id; return { ok: true, message: 'Entered ' + w.name + '.' };
+  }
+
+  function upgradeCost(state, id) {
+    var u = upgradeById(id), level = state && state.upgrades ? state.upgrades[id] : 0;
+    if (!u || !isFinite(level) || level < 0 || level >= u.max) return Infinity;
+    return Math.ceil(u.baseCost * Math.pow(u.growth, level));
+  }
+  function upgrades(state) {
+    return UPGRADES.map(function (u) { return { id: u.id, name: u.name, description: u.description, level: state && state.upgrades ? state.upgrades[u.id] : 0, cost: upgradeCost(state, u.id), max: u.max }; });
+  }
+  function buyUpgrade(state, id) {
+    var u = upgradeById(id);
+    if (!validState(state) || !u) return { ok: false, message: 'Unknown upgrade.' };
+    var price = upgradeCost(state, id);
+    if (price === Infinity) return { ok: false, message: u.name + ' is fully attuned.' };
+    if (state.resonance < price) return { ok: false, message: 'Not enough resonance.' };
+    state.resonance -= price; state.upgrades[id] += 1;
+    return { ok: true, message: u.name + ' improved.', cost: price, level: state.upgrades[id] };
+  }
+
+  function prestige(state) {
+    if (!validState(state) || state.runEarned < 8000) return { ok: false, message: 'Earn 8,000 resonance this cycle first.' };
+    var legacy = state.legacy + 1, lifetime = state.totalEarned;
+    state.resonance = 0; state.runEarned = 0; state.levels = { bloom: 0, string: 0, bell: 0, pulse: 0, pad: 0 }; state.upgrades = { touch: 0, ensemble: 0 }; state.world = 'awakening'; state.elapsed = 0; state.legacy = legacy; state.totalEarned = lifetime;
+    return { ok: true, earned: 0, legacy: legacy, message: 'The resonance begins anew.' };
+  }
+
+  root.ResonanceGame = { VOICES: VOICES, WORLDS: WORLDS, UPGRADES: UPGRADES, initial: initial, cost: cost, rate: rate, tapValue: tapValue, phase: phase, canBuy: canBuy, buy: buy, tap: tap, tick: tick, setWorld: setWorld, buyUpgrade: buyUpgrade, prestige: prestige, upgradeCost: upgradeCost, upgrades: upgrades };
+}(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this)));
+</script><script>/* ResonanceAudio: a dependency-free musical Web Audio engine for the prototype. */
+(function () {
+  "use strict";
+
+  const MODES = {
+    pentatonic: [0, 2, 4, 7, 9],
+    dorian: [0, 2, 3, 5, 7, 9, 10],
+    lydian: [0, 2, 4, 6, 7, 9, 11]
+  };
+  const VOICES = ["bloom", "string", "bell", "pulse", "pad"];
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0));
+
+  class ResonanceAudio {
+    constructor(onNote) {
+      this.onNote = typeof onNote === "function" ? onNote : function () {};
+      this.config = {
+        bpm: 78, root: 48, mode: "pentatonic", density: 0.48,
+        volume: 0.72, muted: false, playing: false,
+        levels: { bloom: 0.8, string: 0.68, bell: 0.5, pulse: 0.34, pad: 0.42 }
+      };
+      this.ctx = null;
+      this.master = null;
+      this.compressor = null;
+      this.delay = null;
+      this.delayFeedback = null;
+      this.reverb = null;
+      this.active = new Set();
+      this.holds = new Map();
+      this.timer = null;
+      this.nextStepTime = 0;
+      this.step = 0;
+      this.destroyed = false;
+      this.maxVoices = 28;
+      this._visibility = this._visibility.bind(this);
+      document.addEventListener("visibilitychange", this._visibility);
+    }
+
+    async start() {
+      if (this.destroyed) throw new Error("ResonanceAudio has been destroyed");
+      if (!this.ctx) this._buildGraph();
+      if (this.ctx.state === "suspended") await this.ctx.resume();
+      this._syncClock();
+    }
+
+    _buildGraph() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) throw new Error("Web Audio is not supported in this browser");
+      const c = this.ctx = new AC();
+      this.master = c.createGain();
+      this.compressor = c.createDynamicsCompressor();
+      this.compressor.threshold.value = -18;
+      this.compressor.knee.value = 16;
+      this.compressor.ratio.value = 4;
+      this.compressor.attack.value = 0.012;
+      this.compressor.release.value = 0.25;
+      this.master.connect(this.compressor).connect(c.destination);
+
+      // Two bounded ambience sends: a short filtered feedback delay and generated reverb.
+      this.delay = c.createDelay(1);
+      this.delay.delayTime.value = 0.29;
+      this.delayFeedback = c.createGain();
+      this.delayFeedback.gain.value = 0.19;
+      const delayFilter = c.createBiquadFilter();
+      delayFilter.type = "lowpass";
+      delayFilter.frequency.value = 2800;
+      this.delay.connect(delayFilter).connect(this.delayFeedback).connect(this.delay);
+      delayFilter.connect(this.master);
+      this.reverb = c.createConvolver();
+      this.reverb.buffer = this._impulse(1.7, 2.8);
+      const reverbGain = c.createGain();
+      reverbGain.gain.value = 0.22;
+      this.reverb.connect(reverbGain).connect(this.master);
+      this._applyMaster();
+    }
+
+    _impulse(seconds, decay) {
+      const length = Math.floor(this.ctx.sampleRate * seconds);
+      const b = this.ctx.createBuffer(2, length, this.ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = b.getChannelData(ch);
+        for (let i = 0; i < length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+      }
+      return b;
+    }
+
+    setConfig(next) {
+      if (!next || typeof next !== "object") return;
+      if (next.bpm != null) this.config.bpm = clamp(next.bpm, 35, 220);
+      if (next.root != null) this.config.root = Math.round(clamp(next.root, 24, 84));
+      if (MODES[next.mode]) this.config.mode = next.mode;
+      if (next.density != null) this.config.density = clamp(next.density, 0, 1);
+      if (next.volume != null) this.config.volume = clamp(next.volume, 0, 1);
+      if (next.muted != null) this.config.muted = !!next.muted;
+      if (next.playing != null) this.config.playing = !!next.playing;
+      if (next.levels) VOICES.forEach(v => {
+        // Levels may be fractional mix values or economy levels (1..25). Keep the
+        // progression for variation while all actual gain remains normalized below.
+        if (next.levels[v] != null) this.config.levels[v] = clamp(next.levels[v], 0, 25);
+      });
+      this._applyMaster();
+      this._syncClock();
+    }
+
+    _applyMaster() {
+      if (!this.master || !this.ctx) return;
+      const target = this.config.muted ? 0 : this.config.volume;
+      this.master.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.master.gain.setTargetAtTime(target, this.ctx.currentTime, 0.025);
+    }
+
+    _syncClock() {
+      const shouldRun = this.ctx && this.config.playing && !document.hidden && !this.destroyed;
+      if (shouldRun && !this.timer) {
+        this.nextStepTime = this.ctx.currentTime + 0.06;
+        this.timer = setInterval(() => this._schedule(), 25);
+      } else if (!shouldRun && this.timer) {
+        clearInterval(this.timer);
+        this.timer = null;
+      }
+    }
+
+    _visibility() {
+      // Hidden tabs schedule nothing; on return the phrase resumes from its next step.
+      this._syncClock();
+    }
+
+    _schedule() {
+      if (!this.ctx || !this.config.playing) return;
+      const sixteenth = 60 / this.config.bpm / 4;
+      while (this.nextStepTime < this.ctx.currentTime + 0.12) {
+        this._phraseStep(this.step++, this.nextStepTime);
+        this.nextStepTime += sixteenth;
+      }
+    }
+
+    _phraseStep(step, time) {
+      const barStep = step % 16;
+      const bar = Math.floor(step / 16);
+      const d = this.config.density;
+      // Stable rhythmic anchors plus probability yield space; slower voices enter across bars.
+      if (barStep % 4 === 0 && Math.random() < 0.22 + d * 0.56) this._auto("pulse", barStep === 0 ? 0 : -5, 0.34 + d * 0.22, 0.28, time);
+      if ((barStep === 0 || barStep === 8) && Math.random() < 0.18 + d * 0.52) this._auto("bloom", [0, 2, 4, 1][bar % 4], 0.38 + d * 0.25, 1.25, time);
+      if ([2, 6, 10, 14].includes(barStep) && Math.random() < d * 0.58) this._auto("string", [4, 2, 5, 1, 3][(step + bar) % 5] + (bar % 2 ? 7 : 0), 0.3 + d * 0.25, 0.62, time);
+      if ((barStep === 5 || barStep === 13) && Math.random() < d * 0.36) this._auto("bell", [7, 9, 11, 6][bar % 4], 0.26 + d * 0.2, 1.7, time);
+      if (barStep === 0 && bar % 2 === 0 && Math.random() < 0.14 + d * 0.36) this._auto("pad", [0, 3, 4, 1][(bar / 2) % 4], 0.22 + d * 0.18, 5.5, time);
+    }
+
+    _auto(voice, degree, velocity, duration, time) {
+      if (this.config.levels[voice] <= 0) return;
+      this._sound(voice, degree, velocity, duration, time, true);
+    }
+
+    _levelGain(voice) {
+      const level = this.config.levels[voice];
+      if (level <= 1) return level;
+      // Economy progression adds headroom gently: level 25 is only 12% louder.
+      return 1 + Math.log2(level) / Math.log2(25) * 0.12;
+    }
+
+    _levelVariety(voice) {
+      const level = this.config.levels[voice];
+      return level > 1 ? Math.log2(level) / Math.log2(25) : 0;
+    }
+
+    play(voice, degree, velocity = 0.6, duration = 0.7) {
+      if (!this.ctx || this.destroyed || !VOICES.includes(voice)) return false;
+      return this._sound(voice, degree, velocity, duration, this.ctx.currentTime + 0.005, false);
+    }
+
+    _frequency(degree) {
+      const scale = MODES[this.config.mode];
+      const oct = Math.floor(degree / scale.length);
+      const index = ((degree % scale.length) + scale.length) % scale.length;
+      const midi = this.config.root + scale[index] + oct * 12;
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+
+    _sound(voice, degree, velocity, duration, time, automatic) {
+      if (this.active.size >= this.maxVoices) return false;
+      // Economy levels gate idle generation only. Direct UI gestures always sound;
+      // this lets the initial level-zero bloom respond on the unlocking gesture.
+      velocity = clamp(velocity, 0.01, 1) * (automatic ? this._levelGain(voice) : 1);
+      if (velocity <= 0) return false;
+      duration = clamp(duration, 0.06, 8);
+      const f = this._frequency(Number(degree) || 0);
+      const variety = this._levelVariety(voice);
+      const c = this.ctx;
+      const out = c.createGain();
+      const pan = c.createStereoPanner ? c.createStereoPanner() : null;
+      if (pan) { pan.pan.value = (Math.random() - 0.5) * 0.5; out.connect(pan); pan.connect(this.master); }
+      else out.connect(this.master);
+      out.connect(this.reverb);
+      if (voice !== "pulse") out.connect(this.delay);
+      const nodes = [];
+      const stopAt = time + duration + 2.1;
+      const osc = (type, freq, gain, detune = 0) => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = type; o.frequency.setValueAtTime(freq, time); o.detune.value = detune;
+        g.gain.value = gain; o.connect(g).connect(out); o.start(time); o.stop(stopAt); nodes.push(o); return { o, g };
+      };
+      if (voice === "bloom") {
+        out.gain.setValueAtTime(0.0001, time); out.gain.exponentialRampToValueAtTime(velocity * 0.34, time + 0.12); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+        osc("sine", f, 1); osc("triangle", f * 2, 0.13 + variety * 0.025, -5 - variety * 3);
+      } else if (voice === "string") {
+        out.gain.setValueAtTime(Math.max(0.0001, velocity * 0.33), time); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+        const filter = c.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.setValueAtTime(Math.min(7600, f * (12 + variety * 3)), time); filter.frequency.exponentialRampToValueAtTime(Math.max(500, f * 2), time + duration);
+        const o = c.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; o.connect(filter).connect(out); o.start(time); o.stop(stopAt); nodes.push(o);
+      } else if (voice === "bell") {
+        out.gain.value = 1;
+        [1, 2.01, 3.96, 6.17].forEach((p, i) => { const partial = [0.25, 0.12, 0.07, 0.035][i] * (1 + variety * i * 0.045); const x = osc("sine", f * p, velocity * partial); x.g.gain.setValueAtTime(velocity * partial, time); x.g.gain.exponentialRampToValueAtTime(0.0001, time + duration * (1 - i * 0.1)); });
+      } else if (voice === "pulse") {
+        out.gain.setValueAtTime(velocity * 0.42, time); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+        const x = osc("sine", Math.max(45, f / 4), 1); x.o.frequency.exponentialRampToValueAtTime(Math.max(32, f / 8), time + duration * 0.7);
+      } else {
+        out.gain.setValueAtTime(0.0001, time); out.gain.exponentialRampToValueAtTime(velocity * 0.2, time + 0.65); out.gain.setValueAtTime(velocity * 0.18, time + Math.max(0.7, duration - 1)); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+        osc("sine", f / 2, 0.65, -7 - variety * 3); osc("triangle", f, 0.35, 7 + variety * 3); osc("sine", f * 1.5, 0.08 + variety * 0.015, 0);
+      }
+      this._track(nodes, out, stopAt);
+      this.onNote({ voice, degree: Number(degree) || 0, velocity, automatic: !!automatic });
+      return true;
+    }
+
+    _track(nodes, out, stopAt) {
+      const token = { nodes, out };
+      this.active.add(token);
+      const ms = Math.max(0, (stopAt - this.ctx.currentTime) * 1000 + 50);
+      token.timer = setTimeout(() => { this.active.delete(token); try { out.disconnect(); } catch (_) {} }, ms);
+    }
+
+    hold(id, voice, degree) {
+      if (!this.ctx || this.destroyed || this.holds.has(id) || !VOICES.includes(voice) || this.active.size >= this.maxVoices) return false;
+      const c = this.ctx, o = c.createOscillator(), g = c.createGain(), filter = c.createBiquadFilter();
+      o.type = voice === "string" ? "sawtooth" : voice === "bell" ? "sine" : "triangle";
+      o.frequency.value = this._frequency(Number(degree) || 0);
+      filter.type = "lowpass"; filter.frequency.value = voice === "pad" ? 1300 : 3200;
+      g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.exponentialRampToValueAtTime(0.2, c.currentTime + 0.035);
+      o.connect(filter).connect(g).connect(this.master); g.connect(this.reverb); o.start();
+      const token = { id, voice, degree, o, g, filter, nodes: [o], out: g };
+      this.holds.set(id, token); this.active.add(token);
+      this.onNote({ voice, degree: Number(degree) || 0, velocity: 0.7, automatic: false });
+      return true;
+    }
+
+    moveHold(id, degree, intensity) {
+      const h = this.holds.get(id); if (!h || !this.ctx) return;
+      h.degree = Number(degree) || 0;
+      h.o.frequency.setTargetAtTime(this._frequency(h.degree), this.ctx.currentTime, 0.025);
+      h.g.gain.setTargetAtTime(Math.max(0.0001, clamp(intensity, 0, 1) * 0.26), this.ctx.currentTime, 0.03);
+    }
+
+    release(id) {
+      const h = this.holds.get(id); if (!h || !this.ctx) return;
+      this.holds.delete(id);
+      const now = this.ctx.currentTime;
+      h.g.gain.cancelScheduledValues(now); h.g.gain.setTargetAtTime(0.0001, now, 0.07);
+      try { h.o.stop(now + 0.45); } catch (_) {}
+      setTimeout(() => { this.active.delete(h); try { h.out.disconnect(); } catch (_) {} }, 520);
+    }
+
+    getDiagnostics() {
+      return { contextState: this.ctx ? this.ctx.state : "uninitialized", activeVoiceCount: this.active.size };
+    }
+
+    async destroy() {
+      if (this.destroyed) return;
+      this.destroyed = true; this.config.playing = false; this._syncClock();
+      document.removeEventListener("visibilitychange", this._visibility);
+      Array.from(this.holds.keys()).forEach(id => this.release(id));
+      this.active.forEach(t => { clearTimeout(t.timer); (t.nodes || []).forEach(n => { try { n.stop(); } catch (_) {} }); try { t.out.disconnect(); } catch (_) {} });
+      this.active.clear(); this.holds.clear();
+      if (this.ctx && this.ctx.state !== "closed") await this.ctx.close();
+    }
+  }
+
+  window.ResonanceAudio = ResonanceAudio;
+})();
+</script><script>/* Functional musical geometry; no external imagery or animation dependency. */
+(function(){
+'use strict';
+const COLORS={bloom:'#b0e8db',string:'#dfb3ee',bell:'#f4ce9e',pulse:'#e7aebf',pad:'#a6bfee'};
+const POS={bloom:[.29,.47],string:[.67,.43],bell:[.8,.71],pulse:[.22,.77],pad:[.51,.76]};
+class ResonanceStage{
+ constructor(canvas,onGesture){this.canvas=canvas;this.ctx=canvas.getContext('2d');this.onGesture=onGesture;this.notes=[];this.sparkles=[];this.pointers=new Map();this.levels={bloom:0,string:0,bell:0,pulse:0,pad:0};this.energy={bloom:0,string:0,bell:0,pulse:0,pad:0};this.awake=false;this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;this.color='#b0e8db';this.time=0;this.lastFrame=0;this.width=1;this.height=1;this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(canvas.parentElement);this.resize();this.bind();this.draw=this.draw.bind(this);this.raf=requestAnimationFrame(this.draw);}
+ resize(){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;const d=Math.min(devicePixelRatio||1,2);this.canvas.width=r.width*d;this.canvas.height=r.height*d;this.ctx.setTransform(d,0,0,d,0,0);for(const [id,p]of Object.entries(POS)){const el=document.querySelector(`[data-label="${id}"]`);if(el){el.style.left=(p[0]*100)+'%';el.style.top=(p[1]*100+12)+'%';}}}
+ configure(levels,awake,color,reduced){this.levels={...levels};this.awake=awake;this.color=color;this.reduced=reduced;for(const id of Object.keys(POS)){document.querySelector(`[data-label="${id}"]`)?.classList.toggle('visible',awake&&(id==='bloom'||levels[id]>0));}}
+ point(e){const r=this.canvas.getBoundingClientRect();return{x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))};}
+ hit(p){let best='bloom',distance=.2;for(const [id,xy]of Object.entries(POS)){if(id!=='bloom'&&!this.levels[id])continue;const d=Math.hypot(p.x-xy[0],p.y-xy[1]);if(d<distance){best=id;distance=d;}}return best;}
+ degree(p){return Math.round(p.x*7+(1-p.y)*3)-2;}
+ bind(){const c=this.canvas;c.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;e.preventDefault();c.focus({preventScroll:true});c.setPointerCapture(e.pointerId);const p=this.point(e);const voice=this.hit(p);this.pointers.set(e.pointerId,{...p,voice,start:performance.now(),last:performance.now(),holding:false,degree:this.degree(p)});this.onGesture({kind:'tap',voice,degree:this.degree(p),id:e.pointerId,...p});});
+ c.addEventListener('pointermove',e=>{const prev=this.pointers.get(e.pointerId);if(!prev)return;const p=this.point(e),now=performance.now();if(Math.hypot(p.x-prev.x,p.y-prev.y)>.035&&now-prev.last>90){const voice=this.hit(p);this.onGesture({kind:'sweep',voice,degree:this.degree(p),id:e.pointerId,...p});this.pointers.set(e.pointerId,{...prev,...p,voice,last:now,degree:this.degree(p)});}else if(prev.holding){this.onGesture({kind:'move',voice:prev.voice,degree:this.degree(p),id:e.pointerId,...p});}});
+ const end=e=>{const p=this.pointers.get(e.pointerId);if(!p)return;this.onGesture({kind:'release',voice:p.voice,id:e.pointerId,...p});this.pointers.delete(e.pointerId);};c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);c.addEventListener('lostpointercapture',end);window.addEventListener('blur',()=>this.releaseAll());document.addEventListener('visibilitychange',()=>{if(document.hidden)this.releaseAll();});}
+ releaseAll(){for(const [id,p]of this.pointers)this.onGesture({kind:'release',id,voice:p.voice,...p});this.pointers.clear();}
+ flash(voice,degree=0,velocity=.5,automatic=false,point){const pos=point?[point.x,point.y]:POS[voice]||POS.bloom;this.energy[voice]=Math.min(1.8,(this.energy[voice]||0)+velocity);this.notes.push({x:pos[0],y:pos[1],age:0,life:automatic?2.3:3.2,color:COLORS[voice],voice,velocity,degree,automatic});if(this.notes.length>65)this.notes.shift();if(!this.reduced)for(let i=0;i<(automatic?2:7);i++){const a=Math.random()*Math.PI*2;this.sparkles.push({x:pos[0],y:pos[1],vx:Math.cos(a)*(.01+Math.random()*.025),vy:Math.sin(a)*(.01+Math.random()*.025),age:0,life:1+Math.random()*1.4,color:COLORS[voice]});}if(this.sparkles.length>160)this.sparkles.splice(0,this.sparkles.length-160);}
+ clear(){this.notes=[];this.sparkles=[];this.releaseAll();}
+ draw(now){this.raf=requestAnimationFrame(this.draw);const dt=Math.min((now-(this.lastFrame||now))/1000,.05);this.lastFrame=now;if(document.hidden)return;this.time+=dt;const c=this.ctx,w=this.width,h=this.height;if(!w||!h)return;c.clearRect(0,0,w,h);
+ // A quiet coordinate field makes the stage legible as an instrument.
+ c.fillStyle='#a6c8d00d';for(let x=28;x<w;x+=38)for(let y=28;y<h;y+=38){c.beginPath();c.arc(x,y,.7,0,Math.PI*2);c.fill();}
+ const cx=w*.47,cy=h*.57,rr=Math.min(w,h)*.44;c.strokeStyle='#bedcd908';c.lineWidth=1;for(let k=0;k<3;k++){c.beginPath();c.ellipse(cx,cy,rr*(.7+k*.23),rr*(.55+k*.18),-.2,0,Math.PI*2);c.stroke();}
+ // Strings between owned voices show the ensemble taking form.
+ const active=Object.keys(POS).filter(id=>id==='bloom'||this.levels[id]>0);if(this.awake&&active.length>1){c.lineWidth=.6;for(let i=1;i<active.length;i++){const p=POS[active[i]],q=POS[active[i-1]];c.beginPath();c.moveTo(q[0]*w,q[1]*h);c.quadraticCurveTo((p[0]+q[0])*w/2,(p[1]+q[1])*h/2-45,p[0]*w,p[1]*h);c.strokeStyle=this.color+'12';c.stroke();}}
+ for(const id of Object.keys(POS)){this.energy[id]*=Math.exp(-dt*2.8);this.drawNode(c,id,w,h);}
+ this.notes=this.notes.filter(n=>{n.age+=dt;return n.age<n.life;});for(const n of this.notes){const k=n.age/n.life,alpha=(1-k)*(n.automatic?.3:.55);c.globalAlpha=alpha;c.strokeStyle=n.color;c.lineWidth=n.automatic?.8:1.2;const r=this.reduced?18:8+k*(n.automatic?72:120);c.beginPath();c.ellipse(n.x*w,n.y*h,r,r*(n.voice==='string'?.5:1),n.degree*.2,0,Math.PI*2);c.stroke();if(!n.automatic){c.fillStyle=n.color;c.globalAlpha=alpha*.1;c.fill();}}c.globalAlpha=1;
+ this.sparkles=this.sparkles.filter(p=>{p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;return p.age<p.life;});if(!this.reduced)for(const p of this.sparkles){c.globalAlpha=(1-p.age/p.life)*.7;c.fillStyle=p.color;c.beginPath();c.arc(p.x*w,p.y*h,1.4,0,Math.PI*2);c.fill();}c.globalAlpha=1;
+ for(const [id,p]of this.pointers){if(now-p.start>320&&!p.holding){p.holding=true;this.onGesture({kind:'hold',voice:p.voice,degree:p.degree,id,x:p.x,y:p.y});}if(p.holding&&now-p.last>240){p.last=now;this.onGesture({kind:'charge',voice:p.voice,degree:p.degree,id,x:p.x,y:p.y});}}
+ }
+ drawNode(c,id,w,h){const[x,y]=POS[id],px=x*w,py=y*h;const owned=id==='bloom'||this.levels[id]>0,level=this.levels[id]||0,e=this.energy[id]||0;const base=Math.min(w,h)*.085;const r=base*(1+Math.min(level,25)*.008+e*.15);const t=this.reduced?0:this.time;const color=COLORS[id];c.save();c.translate(px,py);c.globalAlpha=owned?(this.awake?1:.72):.12;
+ if(owned){const glow=c.createRadialGradient(0,0,2,0,0,r*2.6);glow.addColorStop(0,color+(e>.2?'26':'13'));glow.addColorStop(1,color+'00');c.fillStyle=glow;c.fillRect(-r*2.6,-r*2.6,r*5.2,r*5.2);}
+ c.strokeStyle=color;c.lineWidth=1.1;c.fillStyle=color+'0e';
+ if(id==='bloom'){for(let layer=2;layer>=0;layer--){c.beginPath();for(let i=0;i<=100;i++){const a=i/100*Math.PI*2;const z=r*(1+layer*.13)*(1+.075*Math.sin(a*3+t*.65)+.035*Math.cos(a*5-t*.5));const xx=Math.cos(a)*z,yy=Math.sin(a)*z;i?c.lineTo(xx,yy):c.moveTo(xx,yy);}c.closePath();c.globalAlpha*=layer===0?1:.65;c.fill();c.stroke();}c.fillStyle=color;c.beginPath();c.arc(0,0,3+e*2,0,Math.PI*2);c.fill();}
+ if(id==='string'){c.rotate(-.18);const n=5+Math.min(3,Math.floor(level/5));for(let i=0;i<n;i++){const x=(i-(n-1)/2)*9;c.beginPath();c.moveTo(x,-r*1.1);c.bezierCurveTo(x+Math.sin(t*18+i)*e*25,-r*.35,x-Math.sin(t*18+i)*e*20,r*.35,x,r*1.1);c.stroke();}c.strokeStyle=color+'55';c.beginPath();c.ellipse(0,0,r*.96,r*1.45,0,0,Math.PI*2);c.stroke();}
+ if(id==='bell'){c.rotate(.3+Math.sin(t*.5)*.06);for(let i=0;i<3;i++){c.beginPath();const z=r*(.6+i*.28);c.moveTo(0,-z);c.lineTo(z*.68,0);c.lineTo(0,z);c.lineTo(-z*.68,0);c.closePath();c.fill();c.stroke();}c.fillStyle=color;c.beginPath();c.arc(0,0,2.5+e*2,0,Math.PI*2);c.fill();}
+ if(id==='pulse'){for(let i=0;i<3;i++){c.beginPath();c.ellipse(0,0,r*(.5+i*.25)+Math.sin(t*2)*e*6,r*(.5+i*.25),0,0,Math.PI*2);c.stroke();}c.fillStyle=color+'28';c.beginPath();c.arc(0,0,r*.38*(1+e*.3),0,Math.PI*2);c.fill();}
+ if(id==='pad'){for(let j=0;j<5;j++){c.beginPath();for(let i=0;i<=50;i++){const xx=(i/50-.5)*r*2.6,yy=Math.sin(i/50*Math.PI*2+t*.5+j*.55)*r*.2+(j-2)*7;i?c.lineTo(xx,yy):c.moveTo(xx,yy);}c.globalAlpha*=.88;c.stroke();}}
+ c.restore();}
+ destroy(){cancelAnimationFrame(this.raf);this.observer.disconnect();this.releaseAll();}
+}
+window.ResonanceStage=ResonanceStage;
+})();
+</script><script>/* Prototype controller. Economy stays independent of rendering and audio. */
+(function(){
+'use strict';
+const G=window.ResonanceGame,$=id=>document.getElementById(id);
+const colors={bloom:'#b0e8db',string:'#dfb3ee',bell:'#f4ce9e',pulse:'#e7aebf',pad:'#a6bfee'};
+const icons={bloom:'◌',string:'≋',bell:'◇',pulse:'◎',pad:'∿'};
+const names={bloom:'Bloom',string:'Strings',bell:'Bells',pulse:'Pulse',pad:'Atmosphere'};
+const roles={bloom:'Rounded tones · tap & hold',string:'Plucked harmonics · sweep',bell:'Shimmering overtones · scatter',pulse:'Soft percussion · tap a rhythm',pad:'Sustained chords · hold & drift'};
+const descriptions={bloom:'Give your first sound a life of its own.',string:'A thread of melody woven between the blooms.',bell:'Small points of light above the ensemble.',pulse:'A gentle heartbeat beneath everything.',pad:'A slow-moving sky for your sounds to live in.'};
+const worldCopy={awakening:{heading:'A little sound.<br>A world beginning.',name:'Awakening',color:'#b0e8db',description:'Five notes, open space. A simple palette with room to wander.',character:'D MAJOR PENTATONIC'},current:{heading:'Find the movement.<br>Follow the current.',name:'The Current',color:'#dfb3ee',description:'A minor colour with a bright sixth. The phrases begin to lean and sway.',character:'D DORIAN'},radiance:{heading:'Let it open.<br>There is more sky.',name:'Radiance',color:'#f4ce9e',description:'A raised fourth gives familiar tones a different edge. Explore the light between them.',character:'G LYDIAN'}};
+let state=G.initial(),awake=false,starting=null,speed=1,modified=false,playing=true,muted=false,volume=.65,density=.65,tempo=72,root=50;
+let reduced=matchMedia('(prefers-reduced-motion: reduce)').matches,activeTab='voices',toastTimer,arrivalTimer,confirmAction=null;
+let lastTick=Date.now(),knownWorlds=new Set(['awakening']),lastManualPoint=null,lastManualTime=0;
+const audio=new ResonanceAudio(event=>{stage.flash(event.voice,event.degree,event.velocity,event.automatic,(!event.automatic&&performance.now()-lastManualTime<100)?lastManualPoint:null);});
+const stage=new ResonanceStage($('stage'),gesture);
+const fmt=(v,precision=1)=>!Number.isFinite(v)?'—':v>=1e9?(v/1e9).toFixed(2)+'b':v>=1e6?(v/1e6).toFixed(2)+'m':v>=10000?(v/1000).toFixed(1)+'k':v>=1000?Math.floor(v).toLocaleString('en-US'):Number(v.toFixed(precision)).toLocaleString('en-US');
+const costText=v=>fmt(v,0);
+function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),3300);}
+function markModified(){modified=true;$('modified').hidden=false;}
+function syncAudio(){audio.setConfig({bpm:tempo,root,mode:G.WORLDS.find(w=>w.id===state.world).mode,levels:state.levels,density,volume,muted,playing:playing&&awake});stage.configure(state.levels,awake,worldCopy[state.world].color,reduced);}
+async function awaken(){if(awake){if(audio.getDiagnostics().contextState==='suspended')await audio.start();return true;}if(starting)return starting;starting=(async()=>{try{await audio.start();awake=true;$('start-prompt').hidden=true;$('stage-hint').textContent='Tap a bloom. Sweep a string. Hold a sound and let it drift.';syncAudio();render();return true;}catch(e){$('stage-hint').textContent='Sound could not start. Tap “Touch to awaken” to retry.';toast('Sound is unavailable here. Try opening this page in Chrome or Safari.');return false;}finally{starting=null;}})();return starting;}
+async function gesture(e){if(e.kind==='release'){audio.release(e.id);return;}if(e.voice!=='bloom'&&!state.levels[e.voice])return;if(!awake){if(!await awaken())return;}
+ if(e.kind==='move'){audio.moveHold(e.id,e.degree,.6);return;}
+ if(e.kind==='hold'){if(stage.pointers.has(e.id))audio.hold(e.id,e.voice,e.degree);return;}
+ if(e.kind==='charge'){G.tap(state,.35);stage.flash(e.voice,e.degree,.13,false,e);renderNumbers();return;}
+ lastManualPoint=e;lastManualTime=performance.now();audio.play(e.voice,e.degree,e.kind==='sweep'?.45:.65,e.voice==='pad'?2:.9);G.tap(state,e.kind==='sweep'?.7:1);render();}
+function voiceRate(v){const n=state.levels[v.id];return n*v.baseRate*(n>=5?2:1)*(n>=10?2:1)*(n>=25?2:1)*(1+state.upgrades.ensemble*.12)*(1+state.legacy*.03);}
+function initCards(){
+ $('voice-shop').innerHTML=G.VOICES.map(v=>`<article class="voice-card" id="card-${v.id}" style="--voice-color:${colors[v.id]}"><div class="voice-card-top"><span class="voice-emblem" aria-hidden="true">${icons[v.id]}</span><div class="voice-title"><h3>${names[v.id]}</h3><p id="voice-rate-${v.id}">${roles[v.id]}</p></div><span class="voice-count" id="count-${v.id}">0</span></div><p class="voice-description">${descriptions[v.id]}</p><button class="buy-button" id="buy-${v.id}" data-buy="${v.id}"><span>Awaken</span><span>✧ ${v.baseCost}</span></button><div class="card-progress"><div id="afford-${v.id}"></div></div></article>`).join('');
+ $('upgrade-shop').innerHTML=G.UPGRADES.map(u=>`<article class="upgrade-card"><div><h3>${u.id==='touch'?'A stronger touch':'Ensemble resonance'} <span id="upgrade-level-${u.id}"></span></h3><p>${u.id==='touch'?'+0.8 Resonance with every touch':'+12% production across all voices'}</p></div><button id="upgrade-${u.id}" data-upgrade="${u.id}"></button></article>`).join('');
+ $('world-shop').innerHTML=G.WORLDS.map((w,i)=>`<article class="world-card" id="world-card-${w.id}" style="--world-color:${worldCopy[w.id].color}"><div class="world-card-top"><span>WORLD 0${i+1}</span><span>${worldCopy[w.id].character}</span></div><h3>${worldCopy[w.id].name}</h3><p>${worldCopy[w.id].description}</p><button class="secondary-button" id="enter-${w.id}" data-world="${w.id}"></button></article>`).join('');
+}
+function renderNumbers(){
+ $('balance').textContent=fmt(state.resonance);$('rate').textContent=fmt(G.rate(state));$('tap-value').textContent=fmt(G.tapValue(state));
+ const next=G.WORLDS.find(w=>state.totalEarned<w.unlockAt);
+ $('next-goal').textContent=next?'Discover '+worldCopy[next.id].name:'All three worlds are open';$('goal-fraction').textContent=next?fmt(state.totalEarned,0)+' / '+fmt(next.unlockAt,0):'Keep growing';$('goal-progress').style.width=next?Math.min(100,state.totalEarned/next.unlockAt*100)+'%':'100%';
+ $('legacy-badge').hidden=!state.legacy;$('legacy-badge').textContent='✦ Legacy '+state.legacy;
+ $('stat-earned').textContent=fmt(state.runEarned);$('stat-taps').textContent=fmt(state.totalTaps,0);$('stat-age').textContent=Math.floor(state.elapsed/60)+'m '+Math.floor(state.elapsed%60)+'s';$('stat-legacy').textContent=state.legacy+' · +'+(state.legacy*3)+'%';$('stat-audio').textContent=!awake?'Waiting for touch':muted?'Muted · still earning':playing?'Playing':'Paused · still earning';
+ $('prestige').disabled=state.runEarned<8000;$('prestige-status').textContent=state.runEarned>=8000?'Ready · next cycle adds +3% to touch and idle production':fmt(state.runEarned,0)+' / 8,000 earned this cycle';
+ $('footer-status').textContent=speed!==1?'Time flows '+speed+'× faster.':G.rate(state)>0?'Your world is playing itself.':'A little world, entirely yours.';
+ for(const w of G.WORLDS){if(state.totalEarned>=w.unlockAt&&!knownWorlds.has(w.id)){knownWorlds.add(w.id);toast(worldCopy[w.id].name+' is open. Explore it in Worlds.');}}
+ $('world-count').textContent=G.WORLDS.filter(w=>state.totalEarned>=w.unlockAt).length+'/3';
+}
+function render(){renderNumbers();for(const v of G.VOICES){const n=state.levels[v.id],price=G.cost(state,v.id),locked=state.totalEarned<v.unlockAt;const btn=$('buy-'+v.id);btn.disabled=!G.canBuy(state,v.id);btn.setAttribute('aria-label',(n?'Grow ':'Awaken ')+names[v.id]+' for '+price+' Resonance');btn.children[0].textContent=locked?'Discover at '+fmt(v.unlockAt,0):n?'Grow '+names[v.id]:'Awaken '+names[v.id];btn.children[1].textContent='✧ '+costText(price);$('count-'+v.id).textContent=n;$('voice-rate-'+v.id).textContent=n?'+'+fmt(voiceRate(v))+' / sec · '+(n<5?(5-n)+' to first 2×':n<10?(10-n)+' to next 2×':n<25?(25-n)+' to next 2×':'8× milestone bonus'):roles[v.id];$('card-'+v.id).classList.toggle('locked',locked);$('afford-'+v.id).style.width=Math.min(100,state.resonance/price*100)+'%';document.querySelector(`[data-play="${v.id}"]`).disabled=v.id!=='bloom'&&!n;}
+ for(const u of G.UPGRADES){const price=G.upgradeCost(state,u.id);$('upgrade-'+u.id).disabled=state.resonance<price||!Number.isFinite(price);$('upgrade-'+u.id).textContent=Number.isFinite(price)?'✧ '+costText(price):'Max';$('upgrade-'+u.id).setAttribute('aria-label','Upgrade '+u.name+' for '+price+' Resonance');$('upgrade-level-'+u.id).textContent=state.upgrades[u.id]?'· '+state.upgrades[u.id]:'';}
+ for(const w of G.WORLDS){const b=$('enter-'+w.id),open=state.totalEarned>=w.unlockAt,current=state.world===w.id;b.disabled=!open||current;b.textContent=current?'You are here':open?'Enter '+worldCopy[w.id].name:'Opens at '+fmt(w.unlockAt,0)+' earned';$('world-card-'+w.id).classList.toggle('current',current);}
+}
+async function buy(id){if(!G.canBuy(state,id))return{ok:false,message:'Not enough Resonance or voice not discovered.'};await awaken();const result=G.buy(state,id);if(result.ok){syncAudio();audio.play(id,0,.6,1.4);stage.flash(id,0,.9);const n=state.levels[id];toast(n===1?names[id]+' awakened. It now plays and earns on its own.':[5,10,25].includes(n)?names[id]+' ×'+n+' · production doubled!':names[id]+' grew to '+n+'.');render();}return result;}
+function applyWorld(id,announce=true){const result=G.setWorld(state,id);if(!result.ok)return result;const w=G.WORLDS.find(w=>w.id===id),copy=worldCopy[id];tempo=w.bpm;root=w.root;$('tempo').value=tempo;$('tempo-value').textContent=tempo+' BPM';$('root').value=root;document.documentElement.style.setProperty('--accent',copy.color);$('world-index').textContent='WORLD 0'+(G.WORLDS.indexOf(w)+1)+' / '+copy.name.toUpperCase();$('world-heading').innerHTML=copy.heading;updateScaleLabel();syncAudio();render();if(announce){$('world-arrival').textContent=copy.name;$('world-arrival').classList.add('visible');clearTimeout(arrivalTimer);arrivalTimer=setTimeout(()=>$('world-arrival').classList.remove('visible'),2100);if(awake){audio.play('bloom',0,.45,2);setTimeout(()=>audio.play('bloom',id==='radiance'?3:5,.35,2),330);}}return result;}
+function updateScaleLabel(){const n={48:'C',50:'D',52:'E',53:'F',55:'G',57:'A'}[root]||'D';$('scale-label').textContent=n+' '+G.WORLDS.find(w=>w.id===state.world).mode;}
+function selectTab(tab){if(!['voices','worlds','tinker'].includes(tab))return;activeTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab));});document.querySelectorAll('.tab-panel').forEach(p=>p.hidden=p.id!=='tab-'+tab);render();}
+function confirm(title,body,action){confirmAction=action;$('confirm-title').textContent=title;$('confirm-body').textContent=body;$('confirm-dialog').showModal();}
+function setScenario(which){stage.clear();state=G.initial();speed=1;document.querySelectorAll('[data-speed]').forEach(b=>b.classList.toggle('active',b.dataset.speed==='1'));if(which==='ensemble'){state.levels={bloom:5,string:3,bell:1,pulse:1,pad:1};state.resonance=600;state.totalEarned=8000;state.runEarned=8000;state.upgrades={touch:2,ensemble:1};state.world='current';}else if(which==='radiance'){state.levels={bloom:10,string:10,bell:5,pulse:3,pad:2};state.resonance=3500;state.totalEarned=18000;state.runEarned=18000;state.upgrades={touch:4,ensemble:3};state.world='radiance';}knownWorlds=new Set(G.WORLDS.filter(w=>state.totalEarned>=w.unlockAt).map(w=>w.id));lastTick=Date.now();applyWorld(state.world,false);markModified();render();toast(which==='first'?'A new beginning. Tap to make the first sound.':which==='ensemble'?'A small ensemble, ready to explore.':'Full bloom. Play with the whole world.');}
+function reset(){stage.clear();state=G.initial();speed=1;modified=false;playing=true;knownWorlds=new Set(['awakening']);$('modified').hidden=true;$('pause').textContent='Ⅱ';$('pause').setAttribute('aria-label','Pause music');document.querySelectorAll('[data-speed]').forEach(b=>b.classList.toggle('active',b.dataset.speed==='1'));lastTick=Date.now();applyWorld('awakening',false);toast('Fresh start. Sound and listening settings are kept.');}
+function tick(){const now=Date.now(),seconds=Math.min((now-lastTick)/1000,3600);lastTick=now;if(!awake)return;if(seconds>0)G.tick(state,seconds*speed);if(!document.hidden)render();}
+$('awaken').addEventListener('click',()=>gesture({kind:'tap',voice:'bloom',degree:0,x:.29,y:.47,id:'start'}));
+$('voice-shop').addEventListener('click',e=>{const b=e.target.closest('[data-buy]');if(b)void buy(b.dataset.buy);});
+$('upgrade-shop').addEventListener('click',e=>{const b=e.target.closest('[data-upgrade]');if(!b)return;const result=G.buyUpgrade(state,b.dataset.upgrade);if(result.ok){syncAudio();audio.play('bloom',4,.4,1);toast(b.dataset.upgrade==='touch'?'Every touch carries more Resonance.':'All voices now earn more together.');render();}});
+$('world-shop').addEventListener('click',e=>{const b=e.target.closest('[data-world]');if(b)applyWorld(b.dataset.world);});
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>selectTab(b.dataset.tab)));
+$('tinker-shortcut').addEventListener('click',()=>{selectTab('tinker');if(innerWidth<=760)document.querySelector('.tabs').scrollIntoView({behavior:reduced?'instant':'smooth',block:'start'});});
+document.querySelectorAll('[data-play]').forEach(b=>b.addEventListener('click',()=>gesture({kind:'tap',voice:b.dataset.play,degree:Math.floor(Math.random()*6),id:'key',x:.5,y:.5})));
+document.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||$('confirm-dialog').open||e.repeat)return;const idx=Number(e.key)-1;if(idx>=0&&idx<5){e.preventDefault();const id=G.VOICES[idx].id;if(id==='bloom'||state.levels[id])gesture({kind:'tap',voice:id,degree:idx,id:'keyboard',x:.5,y:.5});}});
+$('pause').addEventListener('click',async()=>{await awaken();playing=!playing;$('pause').textContent=playing?'Ⅱ':'▷';$('pause').setAttribute('aria-label',playing?'Pause music':'Resume music');syncAudio();render();toast(playing?'Your ensemble is playing again.':'Automatic music paused. Your world still earns.');});
+$('mute').addEventListener('click',()=>{muted=!muted;$('mute').textContent=muted?'♩̸':'♫';$('mute').setAttribute('aria-label',muted?'Unmute sound':'Mute sound');syncAudio();render();});
+$('volume').addEventListener('input',e=>{volume=Number(e.target.value)/100;syncAudio();});$('density').addEventListener('input',e=>{density=Number(e.target.value)/100;syncAudio();});
+$('motion').addEventListener('click',()=>{reduced=!reduced;$('motion').setAttribute('aria-pressed',String(reduced));$('motion').textContent=reduced?'Full motion':'Gentle motion';syncAudio();});
+$('speed-controls').addEventListener('click',e=>{const b=e.target.closest('[data-speed]');if(!b)return;tick();speed=Number(b.dataset.speed);markModified();document.querySelectorAll('[data-speed]').forEach(x=>x.classList.toggle('active',x===b));render();});
+$('tempo').addEventListener('input',e=>{tempo=Number(e.target.value);$('tempo-value').textContent=tempo+' BPM';markModified();syncAudio();});$('root').addEventListener('change',e=>{root=Number(e.target.value);markModified();updateScaleLabel();syncAudio();});
+$('grant').addEventListener('click',()=>{state.resonance+=500;state.totalEarned+=500;state.runEarned+=500;markModified();render();toast('+500 Resonance to experiment with.');});
+$('skip').addEventListener('click',()=>{tick();const r=G.tick(state,3600);markModified();render();toast('An hour passed. Your world earned '+fmt(r.earned)+' Resonance.');});
+document.querySelectorAll('[data-scenario]').forEach(b=>b.addEventListener('click',()=>confirm('Try this moment?','This replaces your current prototype run. Listening settings are kept. There is no automatic save.',async()=>{await awaken();setScenario(b.dataset.scenario);})));
+$('reset').addEventListener('click',()=>confirm('Begin from silence?','This resets your progress, Legacy, and tinkering changes. Your volume and motion preferences stay as they are.',reset));
+$('prestige').addEventListener('click',()=>{if(state.runEarned<8000)return;confirm('Begin a new cycle?','Your voices, upgrades, and current Resonance reset. Gain one Legacy: +3% to touch and idle earnings. Discovered worlds remain available.',()=>{stage.clear();const r=G.prestige(state);if(r.ok){applyWorld('awakening',false);render();toast('Legacy '+state.legacy+'. A new beginning, with more possibility.');}});});
+$('confirm-cancel').addEventListener('click',()=>{$('confirm-dialog').close();confirmAction=null;});$('confirm-ok').addEventListener('click',()=>{const action=confirmAction;confirmAction=null;$('confirm-dialog').close();if(action)action();});$('confirm-dialog').addEventListener('cancel',()=>{confirmAction=null;});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){tick();syncAudio();}});
+initCards();applyWorld('awakening',false);$('motion').textContent=reduced?'Full motion':'Gentle motion';$('motion').setAttribute('aria-pressed',String(reduced));render();const interval=setInterval(tick,150);
+window.addEventListener('pagehide',()=>stage.releaseAll());window.addEventListener('beforeunload',()=>{clearInterval(interval);audio.destroy();stage.destroy();});
+// Readable state and shared actions for independent checks and supported browser agents.
+window.ResonancePrototype={getState:()=>JSON.parse(JSON.stringify(state)),getAudio:()=>audio.getDiagnostics(),buy,selectWorld:applyWorld,selectTab};
+const context=document.modelContext;if(context?.registerTool){const life=new AbortController();const register=tool=>{try{Promise.resolve(context.registerTool(tool,{signal:life.signal})).catch(()=>{});}catch{}};
+ register({name:'inspect_musical_world',description:'Read Resonance, production, voices, current world and audio status.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>({state:window.ResonancePrototype.getState(),perSecond:G.rate(state),audio:audio.getDiagnostics()})});
+ register({name:'buy_musical_voice',description:'Spend earned Resonance to buy one voice, exactly like its Grow button.',inputSchema:{type:'object',properties:{voice:{type:'string',enum:G.VOICES.map(v=>v.id)}},required:['voice'],additionalProperties:false},execute:async input=>{if(!input||!G.VOICES.some(v=>v.id===input.voice))throw new Error('Unknown voice');if(!G.canBuy(state,input.voice))return{ok:false,message:'Not affordable or not discovered.'};const result=G.buy(state,input.voice);syncAudio();render();if(awake)audio.play(input.voice,0,.6,1);return{...result,resonance:state.resonance,perSecond:G.rate(state)};}});
+ window.addEventListener('pagehide',()=>life.abort(),{once:true});}
+})();
+</script>
+</body></html>
