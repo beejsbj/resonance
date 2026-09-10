@@ -1,85 +1,376 @@
-/* Prototype controller. Economy stays independent of rendering and audio. */
-(function(){
-'use strict';
-const G=window.ResonanceGame,$=id=>document.getElementById(id);
-const colors={bloom:'#b0e8db',string:'#dfb3ee',bell:'#f4ce9e',pulse:'#e7aebf',pad:'#a6bfee'};
-const icons={bloom:'◌',string:'≋',bell:'◇',pulse:'◎',pad:'∿'};
-const names={bloom:'Bloom',string:'Strings',bell:'Bells',pulse:'Pulse',pad:'Atmosphere'};
-const roles={bloom:'Rounded tones · tap & hold',string:'Plucked harmonics · sweep',bell:'Shimmering overtones · scatter',pulse:'Soft percussion · tap a rhythm',pad:'Sustained chords · hold & drift'};
-const descriptions={bloom:'Give your first sound a life of its own.',string:'A thread of melody woven between the blooms.',bell:'Small points of light above the ensemble.',pulse:'A gentle heartbeat beneath everything.',pad:'A slow-moving sky for your sounds to live in.'};
-const worldCopy={awakening:{heading:'A little sound.<br>A world beginning.',name:'Awakening',color:'#b0e8db',description:'Five notes, open space. A simple palette with room to wander.',character:'D MAJOR PENTATONIC'},current:{heading:'Find the movement.<br>Follow the current.',name:'The Current',color:'#dfb3ee',description:'A minor colour with a bright sixth. The phrases begin to lean and sway.',character:'D DORIAN'},radiance:{heading:'Let it open.<br>There is more sky.',name:'Radiance',color:'#f4ce9e',description:'A raised fourth gives familiar tones a different edge. Explore the light between them.',character:'G LYDIAN'}};
-let state=G.initial(),awake=false,starting=null,speed=1,modified=false,playing=true,muted=false,volume=.65,density=.65,tempo=72,root=50;
-let reduced=matchMedia('(prefers-reduced-motion: reduce)').matches,activeTab='voices',toastTimer,arrivalTimer,confirmAction=null;
-let lastTick=Date.now(),knownWorlds=new Set(['awakening']),lastManualPoint=null,lastManualTime=0;
-const audio=new ResonanceAudio(event=>{stage.flash(event.voice,event.degree,event.velocity,event.automatic,(!event.automatic&&performance.now()-lastManualTime<100)?lastManualPoint:null);});
-const stage=new ResonanceStage($('stage'),gesture);
-const fmt=(v,precision=1)=>!Number.isFinite(v)?'—':v>=1e9?(v/1e9).toFixed(2)+'b':v>=1e6?(v/1e6).toFixed(2)+'m':v>=10000?(v/1000).toFixed(1)+'k':v>=1000?Math.floor(v).toLocaleString('en-US'):Number(v.toFixed(precision)).toLocaleString('en-US');
-const costText=v=>fmt(v,0);
-function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),3300);}
-function markModified(){modified=true;$('modified').hidden=false;}
-function syncAudio(){audio.setConfig({bpm:tempo,root,mode:G.WORLDS.find(w=>w.id===state.world).mode,levels:state.levels,density,volume,muted,playing:playing&&awake});stage.configure(state.levels,awake,worldCopy[state.world].color,reduced);}
-async function awaken(){if(awake){if(audio.getDiagnostics().contextState==='suspended')await audio.start();return true;}if(starting)return starting;starting=(async()=>{try{await audio.start();awake=true;$('start-prompt').hidden=true;$('stage-hint').textContent='Tap a bloom. Sweep a string. Hold a sound and let it drift.';syncAudio();render();return true;}catch(e){$('stage-hint').textContent='Sound could not start. Tap “Touch to awaken” to retry.';toast('Sound is unavailable here. Try opening this page in Chrome or Safari.');return false;}finally{starting=null;}})();return starting;}
-async function gesture(e){if(e.kind==='release'){audio.release(e.id);return;}if(e.voice!=='bloom'&&!state.levels[e.voice])return;if(!awake){if(!await awaken())return;}
- if(e.kind==='move'){audio.moveHold(e.id,e.degree,.6);return;}
- if(e.kind==='hold'){if(stage.pointers.has(e.id))audio.hold(e.id,e.voice,e.degree);return;}
- if(e.kind==='charge'){G.tap(state,.35);stage.flash(e.voice,e.degree,.13,false,e);renderNumbers();return;}
- lastManualPoint=e;lastManualTime=performance.now();audio.play(e.voice,e.degree,e.kind==='sweep'?.45:.65,e.voice==='pad'?2:.9);G.tap(state,e.kind==='sweep'?.7:1);render();}
-function voiceRate(v){const n=state.levels[v.id];return n*v.baseRate*(n>=5?2:1)*(n>=10?2:1)*(n>=25?2:1)*(1+state.upgrades.ensemble*.12)*(1+state.legacy*.03);}
-function initCards(){
- $('voice-shop').innerHTML=G.VOICES.map(v=>`<article class="voice-card" id="card-${v.id}" style="--voice-color:${colors[v.id]}"><div class="voice-card-top"><span class="voice-emblem" aria-hidden="true">${icons[v.id]}</span><div class="voice-title"><h3>${names[v.id]}</h3><p id="voice-rate-${v.id}">${roles[v.id]}</p></div><span class="voice-count" id="count-${v.id}">0</span></div><p class="voice-description">${descriptions[v.id]}</p><button class="buy-button" id="buy-${v.id}" data-buy="${v.id}"><span>Awaken</span><span>✧ ${v.baseCost}</span></button><div class="card-progress"><div id="afford-${v.id}"></div></div></article>`).join('');
- $('upgrade-shop').innerHTML=G.UPGRADES.map(u=>`<article class="upgrade-card"><div><h3>${u.id==='touch'?'A stronger touch':'Ensemble resonance'} <span id="upgrade-level-${u.id}"></span></h3><p>${u.id==='touch'?'+0.8 Resonance with every touch':'+12% production across all voices'}</p></div><button id="upgrade-${u.id}" data-upgrade="${u.id}"></button></article>`).join('');
- $('world-shop').innerHTML=G.WORLDS.map((w,i)=>`<article class="world-card" id="world-card-${w.id}" style="--world-color:${worldCopy[w.id].color}"><div class="world-card-top"><span>WORLD 0${i+1}</span><span>${worldCopy[w.id].character}</span></div><h3>${worldCopy[w.id].name}</h3><p>${worldCopy[w.id].description}</p><button class="secondary-button" id="enter-${w.id}" data-world="${w.id}"></button></article>`).join('');
-}
-function renderNumbers(){
- $('balance').textContent=fmt(state.resonance);$('rate').textContent=fmt(G.rate(state));$('tap-value').textContent=fmt(G.tapValue(state));
- const next=G.WORLDS.find(w=>state.totalEarned<w.unlockAt);
- $('next-goal').textContent=next?'Discover '+worldCopy[next.id].name:'All three worlds are open';$('goal-fraction').textContent=next?fmt(state.totalEarned,0)+' / '+fmt(next.unlockAt,0):'Keep growing';$('goal-progress').style.width=next?Math.min(100,state.totalEarned/next.unlockAt*100)+'%':'100%';
- $('legacy-badge').hidden=!state.legacy;$('legacy-badge').textContent='✦ Legacy '+state.legacy;
- $('stat-earned').textContent=fmt(state.runEarned);$('stat-taps').textContent=fmt(state.totalTaps,0);$('stat-age').textContent=Math.floor(state.elapsed/60)+'m '+Math.floor(state.elapsed%60)+'s';$('stat-legacy').textContent=state.legacy+' · +'+(state.legacy*3)+'%';$('stat-audio').textContent=!awake?'Waiting for touch':muted?'Muted · still earning':playing?'Playing':'Paused · still earning';
- $('prestige').disabled=state.runEarned<8000;$('prestige-status').textContent=state.runEarned>=8000?'Ready · next cycle adds +3% to touch and idle production':fmt(state.runEarned,0)+' / 8,000 earned this cycle';
- $('footer-status').textContent=speed!==1?'Time flows '+speed+'× faster.':G.rate(state)>0?'Your world is playing itself.':'A little world, entirely yours.';
- for(const w of G.WORLDS){if(state.totalEarned>=w.unlockAt&&!knownWorlds.has(w.id)){knownWorlds.add(w.id);toast(worldCopy[w.id].name+' is open. Explore it in Worlds.');}}
- $('world-count').textContent=G.WORLDS.filter(w=>state.totalEarned>=w.unlockAt).length+'/3';
-}
-function render(){renderNumbers();for(const v of G.VOICES){const n=state.levels[v.id],price=G.cost(state,v.id),locked=state.totalEarned<v.unlockAt;const btn=$('buy-'+v.id);btn.disabled=!G.canBuy(state,v.id);btn.setAttribute('aria-label',(n?'Grow ':'Awaken ')+names[v.id]+' for '+price+' Resonance');btn.children[0].textContent=locked?'Discover at '+fmt(v.unlockAt,0):n?'Grow '+names[v.id]:'Awaken '+names[v.id];btn.children[1].textContent='✧ '+costText(price);$('count-'+v.id).textContent=n;$('voice-rate-'+v.id).textContent=n?'+'+fmt(voiceRate(v))+' / sec · '+(n<5?(5-n)+' to first 2×':n<10?(10-n)+' to next 2×':n<25?(25-n)+' to next 2×':'8× milestone bonus'):roles[v.id];$('card-'+v.id).classList.toggle('locked',locked);$('afford-'+v.id).style.width=Math.min(100,state.resonance/price*100)+'%';document.querySelector(`[data-play="${v.id}"]`).disabled=v.id!=='bloom'&&!n;}
- for(const u of G.UPGRADES){const price=G.upgradeCost(state,u.id);$('upgrade-'+u.id).disabled=state.resonance<price||!Number.isFinite(price);$('upgrade-'+u.id).textContent=Number.isFinite(price)?'✧ '+costText(price):'Max';$('upgrade-'+u.id).setAttribute('aria-label','Upgrade '+u.name+' for '+price+' Resonance');$('upgrade-level-'+u.id).textContent=state.upgrades[u.id]?'· '+state.upgrades[u.id]:'';}
- for(const w of G.WORLDS){const b=$('enter-'+w.id),open=state.totalEarned>=w.unlockAt,current=state.world===w.id;b.disabled=!open||current;b.textContent=current?'You are here':open?'Enter '+worldCopy[w.id].name:'Opens at '+fmt(w.unlockAt,0)+' earned';$('world-card-'+w.id).classList.toggle('current',current);}
-}
-async function buy(id){if(!G.canBuy(state,id))return{ok:false,message:'Not enough Resonance or voice not discovered.'};await awaken();const result=G.buy(state,id);if(result.ok){syncAudio();audio.play(id,0,.6,1.4);stage.flash(id,0,.9);const n=state.levels[id];toast(n===1?names[id]+' awakened. It now plays and earns on its own.':[5,10,25].includes(n)?names[id]+' ×'+n+' · production doubled!':names[id]+' grew to '+n+'.');render();}return result;}
-function applyWorld(id,announce=true){const result=G.setWorld(state,id);if(!result.ok)return result;const w=G.WORLDS.find(w=>w.id===id),copy=worldCopy[id];tempo=w.bpm;root=w.root;$('tempo').value=tempo;$('tempo-value').textContent=tempo+' BPM';$('root').value=root;document.documentElement.style.setProperty('--accent',copy.color);$('world-index').textContent='WORLD 0'+(G.WORLDS.indexOf(w)+1)+' / '+copy.name.toUpperCase();$('world-heading').innerHTML=copy.heading;updateScaleLabel();syncAudio();render();if(announce){$('world-arrival').textContent=copy.name;$('world-arrival').classList.add('visible');clearTimeout(arrivalTimer);arrivalTimer=setTimeout(()=>$('world-arrival').classList.remove('visible'),2100);if(awake){audio.play('bloom',0,.45,2);setTimeout(()=>audio.play('bloom',id==='radiance'?3:5,.35,2),330);}}return result;}
-function updateScaleLabel(){const n={48:'C',50:'D',52:'E',53:'F',55:'G',57:'A'}[root]||'D';$('scale-label').textContent=n+' '+G.WORLDS.find(w=>w.id===state.world).mode;}
-function selectTab(tab){if(!['voices','worlds','tinker'].includes(tab))return;activeTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab));});document.querySelectorAll('.tab-panel').forEach(p=>p.hidden=p.id!=='tab-'+tab);render();}
-function confirm(title,body,action){confirmAction=action;$('confirm-title').textContent=title;$('confirm-body').textContent=body;$('confirm-dialog').showModal();}
-function setScenario(which){stage.clear();state=G.initial();speed=1;document.querySelectorAll('[data-speed]').forEach(b=>b.classList.toggle('active',b.dataset.speed==='1'));if(which==='ensemble'){state.levels={bloom:5,string:3,bell:1,pulse:1,pad:1};state.resonance=600;state.totalEarned=8000;state.runEarned=8000;state.upgrades={touch:2,ensemble:1};state.world='current';}else if(which==='radiance'){state.levels={bloom:10,string:10,bell:5,pulse:3,pad:2};state.resonance=3500;state.totalEarned=18000;state.runEarned=18000;state.upgrades={touch:4,ensemble:3};state.world='radiance';}knownWorlds=new Set(G.WORLDS.filter(w=>state.totalEarned>=w.unlockAt).map(w=>w.id));lastTick=Date.now();applyWorld(state.world,false);markModified();render();toast(which==='first'?'A new beginning. Tap to make the first sound.':which==='ensemble'?'A small ensemble, ready to explore.':'Full bloom. Play with the whole world.');}
-function reset(){stage.clear();state=G.initial();speed=1;modified=false;playing=true;knownWorlds=new Set(['awakening']);$('modified').hidden=true;$('pause').textContent='Ⅱ';$('pause').setAttribute('aria-label','Pause music');document.querySelectorAll('[data-speed]').forEach(b=>b.classList.toggle('active',b.dataset.speed==='1'));lastTick=Date.now();applyWorld('awakening',false);toast('Fresh start. Sound and listening settings are kept.');}
-function tick(){const now=Date.now(),seconds=Math.min((now-lastTick)/1000,3600);lastTick=now;if(!awake)return;if(seconds>0)G.tick(state,seconds*speed);if(!document.hidden)render();}
-$('awaken').addEventListener('click',()=>gesture({kind:'tap',voice:'bloom',degree:0,x:.29,y:.47,id:'start'}));
-$('voice-shop').addEventListener('click',e=>{const b=e.target.closest('[data-buy]');if(b)void buy(b.dataset.buy);});
-$('upgrade-shop').addEventListener('click',e=>{const b=e.target.closest('[data-upgrade]');if(!b)return;const result=G.buyUpgrade(state,b.dataset.upgrade);if(result.ok){syncAudio();audio.play('bloom',4,.4,1);toast(b.dataset.upgrade==='touch'?'Every touch carries more Resonance.':'All voices now earn more together.');render();}});
-$('world-shop').addEventListener('click',e=>{const b=e.target.closest('[data-world]');if(b)applyWorld(b.dataset.world);});
-document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>selectTab(b.dataset.tab)));
-$('tinker-shortcut').addEventListener('click',()=>{selectTab('tinker');if(innerWidth<=760)document.querySelector('.tabs').scrollIntoView({behavior:reduced?'instant':'smooth',block:'start'});});
-document.querySelectorAll('[data-play]').forEach(b=>b.addEventListener('click',()=>gesture({kind:'tap',voice:b.dataset.play,degree:Math.floor(Math.random()*6),id:'key',x:.5,y:.5})));
-document.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||$('confirm-dialog').open||e.repeat)return;const idx=Number(e.key)-1;if(idx>=0&&idx<5){e.preventDefault();const id=G.VOICES[idx].id;if(id==='bloom'||state.levels[id])gesture({kind:'tap',voice:id,degree:idx,id:'keyboard',x:.5,y:.5});}});
-$('pause').addEventListener('click',async()=>{if(!await awaken())return;playing=!playing;$('pause').textContent=playing?'Ⅱ':'▷';$('pause').setAttribute('aria-label',playing?'Pause music':'Resume music');syncAudio();render();toast(playing?'Your ensemble is playing again.':'Automatic music paused. Your world still earns.');});
-$('mute').addEventListener('click',()=>{muted=!muted;$('mute').textContent=muted?'♩̸':'♫';$('mute').setAttribute('aria-label',muted?'Unmute sound':'Mute sound');syncAudio();render();});
-$('volume').addEventListener('input',e=>{volume=Number(e.target.value)/100;syncAudio();});$('density').addEventListener('input',e=>{density=Number(e.target.value)/100;syncAudio();});
-$('motion').addEventListener('click',()=>{reduced=!reduced;$('motion').setAttribute('aria-pressed',String(reduced));$('motion').textContent=reduced?'Full motion':'Gentle motion';syncAudio();});
-$('speed-controls').addEventListener('click',e=>{const b=e.target.closest('[data-speed]');if(!b)return;tick();speed=Number(b.dataset.speed);markModified();document.querySelectorAll('[data-speed]').forEach(x=>x.classList.toggle('active',x===b));render();});
-$('tempo').addEventListener('input',e=>{tempo=Number(e.target.value);$('tempo-value').textContent=tempo+' BPM';markModified();syncAudio();});$('root').addEventListener('change',e=>{root=Number(e.target.value);markModified();updateScaleLabel();syncAudio();});
-$('grant').addEventListener('click',()=>{state.resonance+=500;state.totalEarned+=500;state.runEarned+=500;markModified();render();toast('+500 Resonance to experiment with.');});
-$('skip').addEventListener('click',()=>{tick();const r=G.tick(state,3600);markModified();render();toast('An hour passed. Your world earned '+fmt(r.earned)+' Resonance.');});
-document.querySelectorAll('[data-scenario]').forEach(b=>b.addEventListener('click',()=>confirm('Try this moment?','This replaces your current prototype run. Listening settings are kept. There is no automatic save.',async()=>{await awaken();setScenario(b.dataset.scenario);})));
-$('reset').addEventListener('click',()=>confirm('Begin from silence?','This resets your progress, Legacy, and tinkering changes. Your volume and motion preferences stay as they are.',reset));
-$('prestige').addEventListener('click',()=>{if(state.runEarned<8000)return;confirm('Begin a new cycle?','Your voices, upgrades, and current Resonance reset. Gain one Legacy: +3% to touch and idle earnings. Discovered worlds remain available.',()=>{stage.clear();const r=G.prestige(state);if(r.ok){applyWorld('awakening',false);render();toast('Legacy '+state.legacy+'. A new beginning, with more possibility.');}});});
-$('confirm-cancel').addEventListener('click',()=>{$('confirm-dialog').close();confirmAction=null;});$('confirm-ok').addEventListener('click',()=>{const action=confirmAction;confirmAction=null;$('confirm-dialog').close();if(action)action();});$('confirm-dialog').addEventListener('cancel',()=>{confirmAction=null;});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){tick();syncAudio();}});
-initCards();applyWorld('awakening',false);$('motion').textContent=reduced?'Full motion':'Gentle motion';$('motion').setAttribute('aria-pressed',String(reduced));render();const interval=setInterval(tick,150);
-window.addEventListener('pagehide',()=>stage.releaseAll());window.addEventListener('beforeunload',()=>{clearInterval(interval);audio.destroy();stage.destroy();});
-// Readable state and shared actions for independent checks and supported browser agents.
-window.ResonancePrototype={getState:()=>JSON.parse(JSON.stringify(state)),getAudio:()=>audio.getDiagnostics(),buy,selectWorld:applyWorld,selectTab};
-const context=document.modelContext;if(context?.registerTool){const life=new AbortController();const register=tool=>{try{Promise.resolve(context.registerTool(tool,{signal:life.signal})).catch(()=>{});}catch{}};
- register({name:'inspect_musical_world',description:'Read Resonance, production, voices, current world and audio status.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>({state:window.ResonancePrototype.getState(),perSecond:G.rate(state),audio:audio.getDiagnostics()})});
- register({name:'buy_musical_voice',description:'Spend earned Resonance to buy one voice, exactly like its Grow button.',inputSchema:{type:'object',properties:{voice:{type:'string',enum:G.VOICES.map(v=>v.id)}},required:['voice'],additionalProperties:false},execute:async input=>{if(!input||!G.VOICES.some(v=>v.id===input.voice))throw new Error('Unknown voice');if(!G.canBuy(state,input.voice))return{ok:false,message:'Not affordable or not discovered.'};const result=await buy(input.voice);return{...result,resonance:state.resonance,perSecond:G.rate(state)};}});
- window.addEventListener('pagehide',()=>life.abort(),{once:true});}
-})();
+/* Prototype controller: joins defense state, stage, sound, and the workshop. */
+(function () {
+  'use strict';
+  const D = window.ResonanceDefense;
+  const $ = id => document.getElementById(id);
+  const STORAGE_KEY = 'resonance-orchestra-study-v2';
+  const WORLD_AUDIO = {
+    awakening: { mode: 'pentatonic', root: 50 },
+    current: { mode: 'dorian', root: 50 },
+    radiance: { mode: 'lydian', root: 55 }
+  };
+  const ICONS = { violin: '≋', drum: '◎', bell: '◇', mine: '✦' };
+  const POWER_NAMES = { echo: 'Reverberating gust', linger: 'Lingering ward' };
+
+  let state = D.initial();
+  let awake = false;
+  let starting = null;
+  let muted = false;
+  let reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let mode = 'build';
+  let pendingBuild = null;
+  let selectedId = 'tower-1';
+  let tempo = 96;
+  let world = 'awakening';
+  let hiddenAt = 0;
+  let lastFrame = performance.now();
+  let lastRender = 0;
+  let toastTimer = 0;
+  let bannerTimer = 0;
+  let saveTimer = 0;
+  let restoredAway = 0;
+
+  const audio = new ResonanceAudio(event => stage.flash(event.voice, event.degree, event.velocity, event.automatic));
+  const stage = new ResonanceStage($('stage'), gesture);
+
+  const fmt = (value, precision = 1) => {
+    if (!Number.isFinite(value)) return '—';
+    if (value >= 1e9) return (value / 1e9).toFixed(2) + 'b';
+    if (value >= 1e6) return (value / 1e6).toFixed(2) + 'm';
+    if (value >= 10000) return (value / 1000).toFixed(1) + 'k';
+    return Number(value.toFixed(precision)).toLocaleString('en-US');
+  };
+
+  function load() {
+    try {
+      const envelope = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (!envelope || !D.validState(envelope.state) || !Number.isFinite(envelope.savedAt)) return;
+      state = D.pause(envelope.state);
+      const settled = D.settleAway(state, Math.max(0, (Date.now() - envelope.savedAt) / 1000));
+      state = settled.state;
+      restoredAway = settled.earned;
+      selectedId = state.towers.find(t => t.hp > 0)?.id || state.mines.find(m => m.level > 0)?.id || null;
+    } catch {}
+  }
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ savedAt: Date.now(), state })); } catch {}
+  }
+
+  function clearSave() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  }
+
+  function toast(text) {
+    $('toast').textContent = text;
+    $('toast').classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 2800);
+  }
+
+  function banner(text) {
+    $('arena-banner').textContent = text;
+    $('arena-banner').classList.add('visible');
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => $('arena-banner').classList.remove('visible'), 2300);
+  }
+
+  function voiceLevels() {
+    const alive = type => state.towers.filter(t => t.type === type && t.hp > 0);
+    const violin = alive('violin').reduce((sum, tower) => sum + tower.tier, 0);
+    const drum = alive('drum').reduce((sum, tower) => sum + tower.tier, 0);
+    const bell = alive('bell').reduce((sum, tower) => sum + tower.tier, 0);
+    return { bloom: 1, string: violin, bell, pulse: drum || 0.45, pad: 0.55 + Math.min(1.4, state.towers.length * 0.14), conductor: 1 };
+  }
+
+  function syncAudio() {
+    const current = WORLD_AUDIO[world];
+    audio.setConfig({ bpm: tempo, root: current.root, mode: current.mode, levels: voiceLevels(), density: 0.82, volume: 0.66, muted, playing: awake });
+  }
+
+  async function awaken() {
+    if (awake) {
+      if (audio.getDiagnostics().contextState === 'suspended') await audio.start();
+      return true;
+    }
+    if (starting) return starting;
+    starting = (async () => {
+      try {
+        await audio.start();
+        awake = true;
+        $('start-prompt').hidden = true;
+        syncAudio();
+        if (restoredAway > 0) { toast('Your mines gathered +' + fmt(restoredAway) + ' Resonance while you were away.'); restoredAway = 0; }
+        audio.play('string', 2, 0.5, 1.1);
+        return true;
+      } catch {
+        toast('Sound could not start here. Try Chrome or Safari. The game can still run silently.');
+        return false;
+      } finally { starting = null; }
+    })();
+    return starting;
+  }
+
+  function eventSound(event) {
+    if (!awake) return;
+    if (event.type === 'towerAttack') {
+      const voice = event.tower.type === 'violin' ? 'string' : event.tower.type === 'drum' ? 'pulse' : 'bell';
+      audio.play(voice, (state.beatIndex + event.tower.tier * 2) % 9, event.tower.electric ? 0.62 : 0.46, voice === 'bell' ? 1.1 : 0.38);
+    } else if (event.type === 'minePayout') audio.play('bloom', event.mine.level > 1 ? 3 : 0, 0.32, 0.75);
+    else if (event.type === 'accent') audio.play('conductor', 4, 0.42, 0.36);
+    else if (event.type === 'gust') { audio.play('conductor', 7, 0.5, 0.55); audio.play('string', 9, 0.34, 0.42); }
+    else if (event.type === 'sing') { [0, 2, 4].forEach((degree, index) => setTimeout(() => audio.play('conductor', degree, 0.62 - index * 0.08, 2.4), index * 150)); }
+    else if (event.type === 'bossStart') audio.play('pulse', -7, 0.8, 1.1);
+    else if (event.type === 'bossShield') audio.play('pad', -2, 0.65, 3.5);
+    else if (event.type === 'bossShellBreak') { audio.play('conductor', 7, 0.72, 2); audio.play('bell', 14, 0.65, 2); }
+    else if (event.type === 'bossDown') { [0, 4, 7, 11].forEach((degree, index) => setTimeout(() => audio.play(index === 3 ? 'bell' : 'string', degree, 0.62, 2.2), index * 120)); }
+    else if (event.type === 'structureDown') audio.play('pad', -5, 0.4, 2.4);
+    else if (event.type === 'conductorHit') audio.play('pulse', -9, 0.58, 0.45);
+  }
+
+  function processEvents(events) {
+    for (const event of events) {
+      if (['towerAttack', 'minePayout', 'accent', 'gust', 'ward', 'bossStrike'].includes(event.type)) stage.effect(event);
+      eventSound(event);
+      if (event.type === 'waveStart') banner('Wave ' + event.wave + ' · the movement begins');
+      else if (event.type === 'waveClear') toast('Wave ' + event.wave + ' resolved · +' + event.reward + ' Resonance');
+      else if (event.type === 'bossShield') banner('THE HUSH CLOSES · swipe through it');
+      else if (event.type === 'bossShellBreak') banner('THE SHELL BREAKS · the orchestra surges');
+      else if (event.type === 'bossDown') banner('THE HUSH BECOMES MUSIC');
+      else if (event.type === 'structureDown') toast('A structure fell silent. Rebuild it from Orchestra.');
+      else if (event.type === 'defeat') openDefeat();
+    }
+    syncAudio();
+  }
+
+  function apply(result, announce = true) {
+    state = result.state;
+    processEvents(result.events || []);
+    if (announce && result.message) toast(result.message);
+    save();
+    render();
+    return result;
+  }
+
+  async function gesture(event) {
+    if (mode === 'build') {
+      if (event.kind !== 'tap') return;
+      if (pendingBuild) {
+        const result = D.placeTower(state, pendingBuild, event.point.x, event.point.y);
+        if (result.ok) { pendingBuild = null; document.querySelectorAll('[data-build]').forEach(button => button.classList.remove('selected')); selectedId = result.state.towers.at(-1).id; }
+        apply(result);
+        return;
+      }
+      const selected = D.selectAt(state, event.point);
+      if (selected) { selectedId = selected.id; selectTab('orchestra', false); render(); }
+      else toast('Choose an instrument below, or tap a structure to inspect it.');
+      return;
+    }
+    await awaken();
+    if (event.kind === 'tap') apply(D.tapPower(state, event.point), false);
+    else if (event.kind === 'swipe') apply(D.swipePower(state, event.start, event.end), false);
+    else if (event.kind === 'holdstart') audio.hold(event.id, 'conductor', 0);
+    else if (event.kind === 'holdmove') audio.moveHold(event.id, Math.round((event.point.x / D.W) * 7), 0.55);
+    else if (event.kind === 'holdtick') apply(D.holdPower(state, event.point, event.seconds), false);
+    else if (event.kind === 'holdend') audio.release(event.id);
+  }
+
+  function pauseForWorkshop() {
+    if (['wave', 'boss'].includes(state.status)) {
+      state = D.pause(state);
+      banner('Danger waits while you build.');
+      save();
+    }
+    mode = 'build';
+  }
+
+  function selectTab(tab, pause = true) {
+    if (pause) pauseForWorkshop();
+    document.querySelectorAll('[data-tab]').forEach(button => {
+      const active = button.dataset.tab === tab;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', String(active));
+    });
+    document.querySelectorAll('.tab-panel').forEach(panel => { panel.hidden = panel.id !== 'tab-' + tab; });
+    render();
+  }
+
+  function selectedStructure() {
+    return state.towers.find(t => t.id === selectedId) || state.mines.find(m => m.id === selectedId) || null;
+  }
+
+  function selectionName(structure) {
+    if (!structure) return '';
+    if (String(structure.id).startsWith('mine-')) return structure.protected ? 'Heart mine' : structure.level > 1 ? 'Expanded outer mine' : 'Outer mine';
+    const prefix = structure.tier === 1 ? 'Solo ' : structure.tier === 2 ? 'Paired ' : 'Sectional ';
+    return prefix + D.TOWERS[structure.type].name.toLowerCase() + (structure.electric ? ' · electric' : '');
+  }
+
+  function renderSelection() {
+    const structure = selectedStructure();
+    $('selection-empty').hidden = !!structure;
+    $('selection-card').hidden = !structure;
+    if (!structure) return;
+    const isMine = String(structure.id).startsWith('mine-');
+    $('selection-emblem').textContent = isMine ? ICONS.mine : ICONS[structure.type];
+    $('selection-name').textContent = selectionName(structure);
+    $('selection-role').textContent = isMine ? (structure.level * 4) + ' Resonance every four beats' : D.TOWERS[structure.type].name + ' · ' + (structure.type === 'violin' ? 'focus' : structure.type === 'drum' ? 'area' : 'chain');
+    $('selection-health').textContent = structure.protected ? 'protected' : Math.ceil(structure.hp) + ' / ' + structure.maxHp;
+    $('grow-section').hidden = isMine;
+    $('go-electric').hidden = isMine;
+    if (isMine) {
+      $('repair').innerHTML = structure.hp <= 0 ? 'Rebuild <span>✧ ' + Math.max(10, Math.ceil((structure.invested || 40) * 0.4)) + '</span>' : structure.level < 2 ? 'Expand mine <span>✧ 80</span>' : 'Repair <span>✧ 10</span>';
+      $('repair').disabled = structure.protected && structure.level >= 2 || (structure.level >= 2 && structure.hp >= structure.maxHp);
+    } else {
+      const sectionCost = structure.tier === 1 ? 45 : structure.tier === 2 ? 90 : Infinity;
+      $('grow-section').innerHTML = structure.tier === 1 ? 'Grow pair <span>✧ 45</span>' : structure.tier === 2 ? 'Grow section <span>✧ 90</span>' : 'Full section <span>—</span>';
+      $('grow-section').disabled = !Number.isFinite(sectionCost) || state.resonance < sectionCost || structure.hp <= 0;
+      $('go-electric').innerHTML = structure.electric ? 'Electric <span>active</span>' : 'Go electric <span>✧ 120</span>';
+      $('go-electric').disabled = structure.electric || structure.tier < 2 || state.resonance < 120 || structure.hp <= 0;
+      const repairCost = structure.hp <= 0 ? Math.max(10, Math.ceil((structure.invested || 40) * 0.4)) : 10;
+      $('repair').innerHTML = structure.hp <= 0 ? 'Rebuild <span>✧ ' + repairCost + '</span>' : 'Repair <span>✧ 10</span>';
+      $('repair').disabled = structure.hp >= structure.maxHp || state.resonance < repairCost;
+    }
+  }
+
+  function waveText() {
+    if (state.status === 'paused') return { label: 'MOVEMENT WAITING', detail: state.resumeStatus === 'boss' ? 'The crisis is paused' : 'Wave ' + state.wave + ' is paused', action: 'Resume movement', disabled: false };
+    if (state.status === 'wave') return { label: 'WAVE ' + state.wave, detail: (state.enemies.length + state.toSpawn.length) + ' threats remain', action: 'Wave active', disabled: true };
+    if (state.status === 'choice') return { label: 'EVOLUTION', detail: 'Choose a conductor power', action: 'Choice waiting', disabled: true };
+    if (state.status === 'bossReady') return { label: 'CRISIS READY', detail: 'The Hush waits for you', action: 'Begin crisis', disabled: false };
+    if (state.status === 'boss') return { label: 'THE HUSH', detail: state.boss?.shielded ? 'Swipe through the shell' : 'Protect the orchestra', action: 'Crisis active', disabled: true };
+    if (state.status === 'endless') return { label: 'ENCORE', detail: 'The orchestra continues', action: 'Begin wave ' + (state.wave + 1), disabled: false };
+    if (state.status === 'defeated') return { label: 'FALLEN QUIET', detail: 'The base remembers', action: 'Raise the orchestra', disabled: false };
+    return { label: 'BUILDING INTERLUDE', detail: 'Before wave ' + (state.wave + 1), action: 'Begin wave ' + (state.wave + 1), disabled: false };
+  }
+
+  function render() {
+    $('balance').textContent = fmt(state.resonance);
+    $('rate').textContent = fmt(D.mineRate(state));
+    $('health').textContent = Math.ceil(state.conductor.hp);
+    $('power').textContent = Math.floor(state.conductor.power);
+    $('power-fill').style.width = state.conductor.power / state.conductor.maxPower * 100 + '%';
+    $('sing').disabled = state.conductor.power < 45 || state.conductor.voiceCooldown > 0 || mode !== 'conduct';
+    $('sing').querySelector('small').textContent = state.conductor.voiceCooldown > 0 ? Math.ceil(state.conductor.voiceCooldown) + 's' : '45';
+    const wave = waveText();
+    $('movement-label').textContent = wave.label;
+    $('wave-label').textContent = wave.detail;
+    $('wave-action').textContent = wave.action;
+    $('wave-action').disabled = wave.disabled;
+    $('resume').hidden = state.status !== 'paused';
+    $('cost-violin').textContent = fmt(D.buildCost(state, 'violin'), 0);
+    $('cost-drum').textContent = fmt(D.buildCost(state, 'drum'), 0);
+    $('cost-bell').textContent = fmt(D.buildCost(state, 'bell'), 0);
+    $('cost-mine').textContent = Number.isFinite(D.mineCost(state)) ? '60' : 'built';
+    document.querySelectorAll('[data-build]').forEach(button => {
+      const type = button.dataset.build;
+      button.disabled = state.resonance < D.buildCost(state, type) || state.towers.length >= 6;
+      button.classList.toggle('selected', pendingBuild === type);
+    });
+    $('build-mine').disabled = !Number.isFinite(D.mineCost(state)) || state.resonance < 60;
+    $('build-hint').textContent = pendingBuild ? 'Tap open space to place the ' + D.TOWERS[pendingBuild].name.toLowerCase() + '.' : mode === 'conduct' ? 'Conduct mode · your gestures support the orchestra.' : 'Choose an instrument, then place it in the arena.';
+    renderSelection();
+    $('status-line').textContent = state.powerChoice ? POWER_NAMES[state.powerChoice] + ' shapes this performance.' : state.status === 'build' ? 'The mines keep growing while danger waits.' : 'The orchestra plays; you lend it support.';
+    stage.configure(state, { mode, pendingBuild, selectedId, reduced });
+    if (state.status === 'choice' && !$('choice-dialog').open) $('choice-dialog').showModal();
+    if (state.status !== 'choice' && $('choice-dialog').open) $('choice-dialog').close();
+  }
+
+  function openDefeat() {
+    if (!$('defeat-dialog').open) $('defeat-dialog').showModal();
+  }
+
+  function startOrResume() {
+    if (state.status === 'defeated') { openDefeat(); return; }
+    const result = state.status === 'bossReady' ? D.beginBoss(state) : D.startWave(state);
+    if (result.ok) { mode = 'conduct'; pendingBuild = null; void awaken(); }
+    apply(result);
+  }
+
+  function reset() {
+    clearSave();
+    state = D.initial();
+    selectedId = 'tower-1'; pendingBuild = null; mode = 'build'; world = 'awakening'; tempo = 96;
+    stage.clear();
+    document.querySelectorAll('[data-build]').forEach(button => button.classList.remove('selected'));
+    selectTab('build', false);
+    syncAudio(); save(); render(); toast('The study begins again from its first violin.');
+  }
+
+  function scenario(which) {
+    state = D.initial();
+    if (which !== 'first') {
+      state.resonance = which === 'boss' ? 520 : 280;
+      state.lifetimeResonance = state.resonance;
+      state.mines[1].level = 2; state.mines[1].hp = 40; state.mines[1].invested = 140;
+      state.towers[0].tier = which === 'boss' ? 3 : 2; state.towers[0].electric = which === 'boss'; state.towers[0].invested = which === 'boss' ? 255 : 45;
+      state.towers.push({ id: 'tower-2', type: 'drum', x: 118, y: 248, hp: 53, maxHp: 53, tier: 2, electric: false, accents: 0, invested: 140 });
+      state.towers.push({ id: 'tower-3', type: 'bell', x: 180, y: 164, hp: 38, maxHp: 38, tier: 2, electric: false, accents: 0, invested: 190 });
+      state.nextId = 4; state.wave = which === 'boss' ? 6 : 3; state.status = which === 'boss' ? 'bossReady' : 'build'; state.powerChoice = which === 'boss' ? 'echo' : null;
+      if (which === 'boss') state.towers.push({ id: 'tower-4', type: 'violin', x: 260, y: 180, hp: 38, maxHp: 38, tier: 2, electric: true, accents: 0, invested: 205 });
+    }
+    selectedId = 'tower-1'; pendingBuild = null; mode = 'build'; stage.clear(); syncAudio(); save(); render(); toast(which === 'first' ? 'First defense.' : which === 'growing' ? 'A growing orchestra.' : 'The crisis is ready when you are.');
+  }
+
+  $('awaken').addEventListener('click', awaken);
+  $('mute').addEventListener('click', () => { muted = !muted; $('mute').textContent = muted ? '♩̸' : '♫'; $('mute').setAttribute('aria-label', muted ? 'Unmute sound' : 'Mute sound'); syncAudio(); });
+  $('motion').addEventListener('click', () => { reduced = !reduced; $('motion').textContent = reduced ? 'Full motion' : 'Gentle motion'; $('motion').setAttribute('aria-pressed', String(reduced)); render(); });
+  $('sing').addEventListener('click', async () => { await awaken(); apply(D.sing(state)); });
+  $('wave-action').addEventListener('click', startOrResume);
+  $('resume').addEventListener('click', startOrResume);
+  $('conduct-mode').addEventListener('click', () => { mode = 'conduct'; if (state.status === 'paused') apply(D.startWave(state), false); else render(); selectTab('build', false); });
+  document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => selectTab(button.dataset.tab)));
+  document.querySelectorAll('[data-build]').forEach(button => button.addEventListener('click', () => { pauseForWorkshop(); pendingBuild = button.dataset.build; document.querySelectorAll('[data-build]').forEach(other => other.classList.toggle('selected', other === button)); render(); }));
+  $('build-mine').addEventListener('click', () => { const result = D.buildMine(state); if (result.ok) selectedId = 'mine-outer'; apply(result); });
+  $('grow-section').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'section')); });
+  $('go-electric').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'electric')); });
+  $('repair').addEventListener('click', () => { const structure = selectedStructure(); if (!structure) return; apply(String(structure.id).startsWith('mine-') && structure.hp > 0 && structure.level < 2 ? D.upgradeMine(state, structure.id) : D.repair(state, structure.id)); });
+  document.querySelectorAll('[data-choice]').forEach(button => button.addEventListener('click', () => apply(D.choosePower(state, button.dataset.choice))));
+  $('retry').addEventListener('click', () => { $('defeat-dialog').close(); apply(D.retry(state)); });
+  $('tempo').addEventListener('input', event => { tempo = Number(event.target.value); $('tempo-value').textContent = tempo + ' BPM'; syncAudio(); });
+  $('world').addEventListener('change', event => { world = event.target.value; syncAudio(); toast('The orchestra entered a different modal colour.'); });
+  $('grant').addEventListener('click', () => { state.resonance += 300; state.lifetimeResonance += 300; save(); render(); toast('+300 Resonance for tinkering.'); });
+  $('away-two').addEventListener('click', () => apply({ ...D.settleAway(state, 120), ok: true, message: 'Two quiet minutes passed.' }));
+  $('away-hour').addEventListener('click', () => apply({ ...D.settleAway(state, 3600), ok: true, message: 'The mines worked for an hour. Danger did not move.' }));
+  document.querySelectorAll('[data-scenario]').forEach(button => button.addEventListener('click', () => scenario(button.dataset.scenario)));
+  $('reset').addEventListener('click', () => $('confirm-dialog').showModal());
+  $('confirm-cancel').addEventListener('click', () => $('confirm-dialog').close());
+  $('confirm-reset').addEventListener('click', () => { $('confirm-dialog').close(); reset(); });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stage.releaseAll(); state = D.pause(state); hiddenAt = Date.now(); save(); syncAudio();
+    } else if (hiddenAt) {
+      const settled = D.settleAway(state, (Date.now() - hiddenAt) / 1000); state = settled.state; hiddenAt = 0; save(); render();
+      if (settled.earned > 0) toast('Your mines gathered +' + fmt(settled.earned) + ' while away. No battle time passed.');
+    }
+  });
+
+  function frame(now) {
+    const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now;
+    if (!document.hidden) {
+      const result = D.advance(state, dt); state = result.state; processEvents(result.events);
+      if (now - lastRender > 100) { render(); lastRender = now; }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  load();
+  $('motion').textContent = reduced ? 'Full motion' : 'Gentle motion';
+  $('motion').setAttribute('aria-pressed', String(reduced));
+  syncAudio(); render();
+  if (restoredAway > 0) $('start-prompt').querySelector('p').textContent = 'Your mines gathered +' + fmt(restoredAway) + ' while you were away.';
+  requestAnimationFrame(frame);
+  saveTimer = setInterval(save, 3000);
+  window.addEventListener('pagehide', () => { stage.releaseAll(); state = D.pause(state); save(); });
+  window.addEventListener('beforeunload', () => { clearInterval(saveTimer); audio.destroy(); stage.destroy(); });
+
+  window.ResonancePrototype = {
+    getState: () => JSON.parse(JSON.stringify(state)),
+    getAudio: () => audio.getDiagnostics(),
+    getMode: () => mode,
+    startWave: startOrResume,
+    settleAway: seconds => apply({ ...D.settleAway(state, seconds), ok: true, message: 'Away time settled.' }),
+    scenario
+  };
+}());

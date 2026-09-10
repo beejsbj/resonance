@@ -7,7 +7,7 @@
     dorian: [0, 2, 3, 5, 7, 9, 10],
     lydian: [0, 2, 4, 6, 7, 9, 11]
   };
-  const VOICES = ["bloom", "string", "bell", "pulse", "pad"];
+  const VOICES = ["bloom", "string", "bell", "pulse", "pad", "conductor"];
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0));
 
   class ResonanceAudio {
@@ -16,7 +16,7 @@
       this.config = {
         bpm: 78, root: 48, mode: "pentatonic", density: 0.48,
         volume: 0.72, muted: false, playing: false,
-        levels: { bloom: 0.8, string: 0.68, bell: 0.5, pulse: 0.34, pad: 0.42 }
+        levels: { bloom: 0.8, string: 0.68, bell: 0.5, pulse: 0.34, pad: 0.42, conductor: 1 }
       };
       this.ctx = null;
       this.master = null;
@@ -30,9 +30,9 @@
       this.nextStepTime = 0;
       this.step = 0;
       this.destroyed = false;
-      this.maxVoices = 28;
-      this._visibility = this._visibility.bind(this);
-      document.addEventListener("visibilitychange", this._visibility);
+      this.maxVoices = 48;
+      this._onVisibility = () => this._visibility();
+      document.addEventListener("visibilitychange", this._onVisibility);
     }
 
     async start() {
@@ -137,12 +137,16 @@
       const barStep = step % 16;
       const bar = Math.floor(step / 16);
       const d = this.config.density;
-      // Stable rhythmic anchors plus probability yield space; slower voices enter across bars.
-      if (barStep % 4 === 0 && Math.random() < 0.22 + d * 0.56) this._auto("pulse", barStep === 0 ? 0 : -5, 0.34 + d * 0.22, 0.28, time);
-      if ((barStep === 0 || barStep === 8) && Math.random() < 0.18 + d * 0.52) this._auto("bloom", [0, 2, 4, 1][bar % 4], 0.38 + d * 0.25, 1.25, time);
-      if ([2, 6, 10, 14].includes(barStep) && Math.random() < d * 0.58) this._auto("string", [4, 2, 5, 1, 3][(step + bar) % 5] + (bar % 2 ? 7 : 0), 0.3 + d * 0.25, 0.62, time);
-      if ((barStep === 5 || barStep === 13) && Math.random() < d * 0.36) this._auto("bell", [7, 9, 11, 6][bar % 4], 0.26 + d * 0.2, 1.7, time);
-      if (barStep === 0 && bar % 2 === 0 && Math.random() < 0.14 + d * 0.36) this._auto("pad", [0, 3, 4, 1][(bar / 2) % 4], 0.22 + d * 0.18, 5.5, time);
+      // Authored, overlapping parts: developed orchestras become deliberately maximalist.
+      if (barStep % 4 === 0) this._auto("pulse", barStep === 0 ? -5 : -7, 0.26 + d * 0.16, 0.25, time);
+      if (this.config.levels.pulse >= 2 && [2, 10].includes(barStep)) this._auto("pulse", -2, 0.18 + d * 0.1, 0.16, time);
+      if (barStep === 0 || barStep === 8) this._auto("bloom", [0, 3, 4, 1][bar % 4], 0.25 + d * 0.18, 1.2, time);
+      if ([2, 6, 10, 14].includes(barStep)) this._auto("string", [4, 2, 5, 1][(barStep - 2) / 4] + (bar % 2 ? 5 : 0), 0.22 + d * 0.17, 0.55, time);
+      if (this.config.levels.string >= 2 && [0, 4, 8, 12].includes(barStep)) this._auto("string", [0, 3, 1, 4][barStep / 4] - 5, 0.16 + d * 0.12, 0.82, time);
+      if (this.config.levels.string >= 3 && [3, 7, 11, 15].includes(barStep)) this._auto("string", [7, 9, 6, 8][(barStep - 3) / 4], 0.13 + d * 0.1, 0.4, time);
+      if ((barStep === 5 || barStep === 13) && (d > 0.3 || this.config.levels.bell > 1)) this._auto("bell", [7, 9, 11, 6][bar % 4], 0.2 + d * 0.14, 1.45, time);
+      if (this.config.levels.bell >= 2 && barStep === 15) this._auto("bell", [12, 10, 14, 11][bar % 4], 0.16 + d * 0.1, 1.1, time);
+      if (barStep === 0 && bar % 2 === 0) this._auto("pad", [0, 3, 4, 1][(bar / 2) % 4], 0.16 + d * 0.12, 5.2, time);
     }
 
     _auto(voice, degree, velocity, duration, time) {
@@ -211,6 +215,11 @@
       } else if (voice === "pulse") {
         out.gain.setValueAtTime(velocity * 0.42, time); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
         const x = osc("sine", Math.max(45, f / 4), 1); x.o.frequency.exponentialRampToValueAtTime(Math.max(32, f / 8), time + duration * 0.7);
+      } else if (voice === "conductor") {
+        out.gain.setValueAtTime(0.0001, time); out.gain.exponentialRampToValueAtTime(velocity * 0.18, time + 0.12); out.gain.setValueAtTime(velocity * 0.16, time + Math.max(0.2, duration - 0.25)); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+        const source = c.createOscillator(); source.type = "sawtooth"; source.frequency.value = f;
+        [720, 1180, 2500].forEach((frequency, index) => { const filter = c.createBiquadFilter(), gain = c.createGain(); filter.type = "bandpass"; filter.frequency.value = frequency; filter.Q.value = 7; gain.gain.value = [0.75, 0.5, 0.18][index]; source.connect(filter).connect(gain).connect(out); });
+        source.start(time); source.stop(stopAt); nodes.push(source);
       } else {
         out.gain.setValueAtTime(0.0001, time); out.gain.exponentialRampToValueAtTime(velocity * 0.2, time + 0.65); out.gain.setValueAtTime(velocity * 0.18, time + Math.max(0.7, duration - 1)); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
         osc("sine", f / 2, 0.65, -7 - variety * 3); osc("triangle", f, 0.35, 7 + variety * 3); osc("sine", f * 1.5, 0.08 + variety * 0.015, 0);
@@ -224,7 +233,7 @@
       const token = { nodes, out };
       this.active.add(token);
       const ms = Math.max(0, (stopAt - this.ctx.currentTime) * 1000 + 50);
-      token.timer = setTimeout(() => { this.active.delete(token); try { out.disconnect(); } catch (_) {} }, ms);
+      token.timer = setTimeout(() => { this.active.delete(token); try { out.disconnect(); } catch {} }, ms);
     }
 
     hold(id, voice, degree) {
@@ -253,8 +262,8 @@
       this.holds.delete(id);
       const now = this.ctx.currentTime;
       h.g.gain.cancelScheduledValues(now); h.g.gain.setTargetAtTime(0.0001, now, 0.07);
-      try { h.o.stop(now + 0.45); } catch (_) {}
-      setTimeout(() => { this.active.delete(h); try { h.out.disconnect(); } catch (_) {} }, 520);
+      try { h.o.stop(now + 0.45); } catch {}
+      setTimeout(() => { this.active.delete(h); try { h.out.disconnect(); } catch {} }, 520);
     }
 
     getDiagnostics() {
@@ -264,9 +273,9 @@
     async destroy() {
       if (this.destroyed) return;
       this.destroyed = true; this.config.playing = false; this._syncClock();
-      document.removeEventListener("visibilitychange", this._visibility);
+      document.removeEventListener("visibilitychange", this._onVisibility);
       Array.from(this.holds.keys()).forEach(id => this.release(id));
-      this.active.forEach(t => { clearTimeout(t.timer); (t.nodes || []).forEach(n => { try { n.stop(); } catch (_) {} }); try { t.out.disconnect(); } catch (_) {} });
+      this.active.forEach(t => { clearTimeout(t.timer); (t.nodes || []).forEach(n => { try { n.stop(); } catch {} }); try { t.out.disconnect(); } catch {} });
       this.active.clear(); this.holds.clear();
       if (this.ctx && this.ctx.state !== "closed") await this.ctx.close();
     }
