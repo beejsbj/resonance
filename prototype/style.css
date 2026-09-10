@@ -89,8 +89,17 @@ canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%
 .build-grid small { display: block; overflow: hidden; color: #738398; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .build-grid strong { color: var(--voice); font-size: 11px; font-weight: 500; white-space: nowrap; }
 .build-grid i { font-style: normal; }
+.development-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 7px; }
+.development-strip button { min-width: 0; min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 9px; border: 1px solid #b0e8db1b; border-radius: 9px; background: #b0e8db06; text-align: left; }
+.development-strip span { min-width: 0; }
+.development-strip b, .development-strip small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.development-strip b { color: #cbd8e4; font-size: 11px; }
+.development-strip small { margin-top: 2px; color: #738398; font-size: 9px; }
+.development-strip strong { color: var(--accent); font-size: 10px; font-weight: 500; white-space: nowrap; }
+.development-strip i { font-style: normal; }
 .deck-action { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 9px; }
 .deck-action p { margin: 0; color: #8392a5; font-size: 11px; }
+.deck-action > div { display: flex; flex: none; gap: 5px; }
 .primary-button, .secondary-button, .selection-actions button, .mode-note button { min-height: 40px; padding: 8px 12px; border: 1px solid #ffffff16; border-radius: 8px; background: #ffffff05; font-size: 12px; }
 .primary-button { flex: none; border-color: var(--accent); background: var(--accent); color: #132724; font-weight: 600; }
 
@@ -103,7 +112,7 @@ canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%
 .selection-card h2 { margin: 0; font: 18px Georgia, serif; }
 .selection-card p { margin: 2px 0 0; color: #7d8da2; font-size: 11px; }
 .selection-card > div:first-child > strong { color: #93a3b7; font-size: 11px; }
-.selection-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
+.selection-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-top: 10px; }
 .selection-actions button { display: flex; justify-content: space-between; gap: 5px; padding: 7px 9px; font-size: 11px; }
 .selection-actions span { color: var(--accent); white-space: nowrap; }
 .mode-note { display: flex; align-items: center; gap: 8px; margin-top: 9px; color: #77879b; font-size: 11px; }
@@ -150,6 +159,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
   .wordmark small { display: none; }
   .hud { grid-template-rows: auto; height: 52px; }
   .build-grid button { min-height: 48px; }
+  .development-strip button { min-height: 38px; }
   .power-row { height: 42px; }
   #toast { bottom: 224px; }
 }
@@ -164,7 +174,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
   .build-grid small { display: none; }
   .build-grid .emblem { width: 27px; height: 27px; }
   .power-key, .sing-button { padding-inline: 6px; }
-  .selection-actions { grid-template-columns: 1fr; }
+  .selection-actions { grid-template-columns: repeat(2, 1fr); }
   .mode-note span { display: none; }
 }
 

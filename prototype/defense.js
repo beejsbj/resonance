@@ -27,6 +27,8 @@
     echo: { id: 'echo', name: 'Reverberating gust', description: 'Every swipe returns one beat later as a softer second push.' },
     linger: { id: 'linger', name: 'Lingering ward', description: 'Your ward remains for two seconds after you lift your hand.' }
   };
+  const TEMPO_COSTS = [50, 85, 130, 190, 270, 370];
+  const TOUCH_COSTS = [25, 65, 140];
 
   const clone = value => JSON.parse(JSON.stringify(value));
   const clamp = (value, lo, hi) => Math.max(lo, Math.min(hi, Number(value) || 0));
@@ -37,14 +39,17 @@
 
   function initial() {
     return {
-      version: 2,
+      version: 3,
       seed: 1937,
       resonance: 20,
       lifetimeResonance: 20,
       elapsed: 0,
       tempo: 96,
+      tempoLevel: 0,
       beatPhase: 0,
       beatIndex: 0,
+      halfBeatPhase: 0,
+      halfBeatIndex: 0,
       status: 'build',
       resumeStatus: null,
       wave: 0,
@@ -53,12 +58,13 @@
       spawnClock: 0,
       endless: 0,
       conductor: { hp: 100, maxHp: 100, power: 100, maxPower: 100, chorus: 0, voiceCooldown: 0 },
+      touch: { level: 1, lastBonusBeat: -1, total: 0 },
       mines: [
         { id: 'mine-heart', deposit: 'heart', x: 180, y: 316, level: 1, hp: 999, maxHp: 999, protected: true, accent: false, invested: 0 },
         { id: 'mine-outer', deposit: 'outer', x: 72, y: 126, level: 0, hp: 40, maxHp: 40, protected: false, accent: false, invested: 0 }
       ],
       towers: [
-        { id: 'tower-1', type: 'violin', x: 226, y: 252, hp: 30, maxHp: 30, tier: 1, electric: false, accents: 0, invested: 0 }
+        { id: 'tower-1', type: 'violin', x: 226, y: 252, hp: 30, maxHp: 30, tier: 1, rhythm: 0, octaves: 0, accents: 0, invested: 0 }
       ],
       enemies: [],
       boss: null,
@@ -74,15 +80,17 @@
     const finite = (...values) => values.every(Number.isFinite);
     const point = item => item && finite(item.x, item.y);
     const structure = item => item && typeof item.id === 'string' && finite(item.x, item.y, item.hp, item.maxHp) && item.maxHp > 0;
-    const tower = item => structure(item) && !!towerDefinition(item.type) && finite(item.tier, item.accents, item.invested) && item.tier >= 1;
+    const tower = item => structure(item) && !!towerDefinition(item.type) && finite(item.tier, item.rhythm, item.octaves, item.accents, item.invested) && item.tier >= 1 && item.rhythm >= 0 && item.octaves >= 0;
     const mine = item => structure(item) && typeof item.deposit === 'string' && finite(item.level, item.invested) && item.level >= 0;
     const enemy = item => structure(item) && typeof item.type === 'string' && finite(item.speed, item.armor, item.slow, item.attackPhase);
     const conductor = value?.conductor;
     const statuses = ['build', 'paused', 'wave', 'choice', 'bossReady', 'boss', 'endless', 'defeated'];
     const ids = value && Array.isArray(value.towers) && Array.isArray(value.mines) ? value.towers.concat(value.mines).map(item => item.id) : [];
-    return !!(value && value.version === 2 && finite(value.seed, value.resonance, value.lifetimeResonance, value.elapsed, value.beatPhase, value.beatIndex, value.wave, value.spawned, value.spawnClock, value.endless, value.nextId)
+    const touch = value?.touch;
+    return !!(value && value.version === 3 && finite(value.seed, value.resonance, value.lifetimeResonance, value.elapsed, value.tempo, value.tempoLevel, value.beatPhase, value.beatIndex, value.halfBeatPhase, value.halfBeatIndex, value.wave, value.spawned, value.spawnClock, value.endless, value.nextId)
       && statuses.includes(value.status) && (value.resumeStatus == null || ['wave', 'boss'].includes(value.resumeStatus))
       && conductor && finite(conductor.hp, conductor.maxHp, conductor.power, conductor.maxPower, conductor.chorus, conductor.voiceCooldown) && conductor.maxHp > 0 && conductor.maxPower > 0
+      && touch && finite(touch.level, touch.lastBonusBeat, touch.total) && touch.level >= 1
       && Array.isArray(value.toSpawn) && value.toSpawn.every(type => ['block', 'runner', 'armored'].includes(type))
       && Array.isArray(value.towers) && value.towers.every(tower)
       && Array.isArray(value.mines) && value.mines.every(mine)
@@ -102,6 +110,32 @@
     const state = clone(input);
     state.tempo = clamp(tempo, 60, 132);
     return state;
+  }
+
+  function tempoCost(state) {
+    return TEMPO_COSTS[state.tempoLevel] ?? Infinity;
+  }
+
+  function raiseTempo(input) {
+    const state = clone(input);
+    const cost = tempoCost(state);
+    if (!Number.isFinite(cost)) return { state, ok: false, message: 'The orchestra is at the study’s tempo ceiling.', events: [] };
+    if (state.resonance < cost) return { state, ok: false, message: 'Not enough Resonance to raise the tempo.', events: [] };
+    state.resonance -= cost; state.tempoLevel += 1; state.tempo = 96 + state.tempoLevel * 4;
+    return { state, ok: true, message: 'The whole orchestra rises to ' + state.tempo + ' BPM.', events: [{ type: 'tempoRaised', tempo: state.tempo }] };
+  }
+
+  function touchCost(state) {
+    return TOUCH_COSTS[state.touch.level - 1] ?? Infinity;
+  }
+
+  function deepenTouch(input) {
+    const state = clone(input);
+    const cost = touchCost(state);
+    if (!Number.isFinite(cost)) return { state, ok: false, message: 'Your touch is fully developed in this study.', events: [] };
+    if (state.resonance < cost) return { state, ok: false, message: 'Not enough Resonance to deepen your touch.', events: [] };
+    state.resonance -= cost; state.touch.level += 1;
+    return { state, ok: true, message: 'Each touch now gathers ' + state.touch.level + ' Resonance.', events: [{ type: 'touchDeepened', level: state.touch.level }] };
   }
 
   function mineRate(state, includeChorus = true) {
@@ -138,7 +172,7 @@
     if (state.resonance < cost) return { state, ok: false, message: 'Not enough Resonance.', events: [] };
     const def = towerDefinition(type);
     state.resonance -= cost;
-    state.towers.push({ id: 'tower-' + state.nextId++, type, x: clamp(x, 24, W - 24), y: clamp(y, 54, H - 28), hp: def.hp, maxHp: def.hp, tier: 1, electric: false, accents: 0, invested: cost });
+    state.towers.push({ id: 'tower-' + state.nextId++, type, x: clamp(x, 24, W - 24), y: clamp(y, 54, H - 28), hp: def.hp, maxHp: def.hp, tier: 1, rhythm: 0, octaves: 0, accents: 0, invested: cost });
     return { state, ok: true, message: def.name + ' joined the orchestra.', events: [{ type: 'built', voice: type }] };
   }
 
@@ -164,20 +198,51 @@
     return { state, ok: true, message: 'The mine now answers every bar with a second pulse.', events: [{ type: 'mineUpgrade', x: mine.x, y: mine.y }] };
   }
 
+  function rhythmMaximum(tower) {
+    return tower.type === 'drum' ? 1 : 2;
+  }
+
+  function rhythmPeriod(tower) {
+    const base = towerDefinition(tower.type).every * 2;
+    const reduction = tower.type === 'bell' ? tower.rhythm * 2 : tower.rhythm;
+    return Math.max(1, base - reduction);
+  }
+
+  function rhythmLabel(tower) {
+    const beats = rhythmPeriod(tower) / 2;
+    if (beats === 0.5) return 'every half-beat';
+    if (beats === 1) return 'every beat';
+    if (beats === 1.5) return 'every 1½ beats';
+    if (Number.isInteger(beats)) return 'every ' + beats + ' beats';
+    return 'every ' + beats + ' beats';
+  }
+
+  function towerUpgradeCost(tower, kind) {
+    if (!tower) return Infinity;
+    if (kind === 'mastery') return [45, 90][tower.tier - 1] ?? Infinity;
+    if (kind === 'rhythm') return tower.rhythm < rhythmMaximum(tower) ? [55, 110][tower.rhythm] : Infinity;
+    if (kind === 'octave') return [75, 150][tower.octaves] ?? Infinity;
+    return Infinity;
+  }
+
   function upgradeTower(input, id, kind) {
     const state = clone(input);
     const tower = structureById(state, id);
     if (!tower || !towerDefinition(tower.type)) return { state, ok: false, message: 'Select an instrument tower.', events: [] };
     if (tower.hp <= 0) return { state, ok: false, message: 'Rebuild this instrument first.', events: [] };
-    let cost = Infinity;
-    if (kind === 'section') cost = tower.tier === 1 ? 45 : tower.tier === 2 ? 90 : Infinity;
-    if (kind === 'electric') cost = tower.tier >= 2 && !tower.electric ? 120 : Infinity;
-    if (!Number.isFinite(cost)) return { state, ok: false, message: kind === 'electric' ? 'Grow this instrument before electrifying it.' : 'This section is already full.', events: [] };
+    const cost = towerUpgradeCost(tower, kind);
+    if (!Number.isFinite(cost)) return { state, ok: false, message: 'That musical development is complete in this study.', events: [] };
     if (state.resonance < cost) return { state, ok: false, message: 'Not enough Resonance.', events: [] };
     state.resonance -= cost; tower.invested += cost;
-    if (kind === 'section') { tower.tier += 1; tower.maxHp += 8; tower.hp += 8; }
-    else tower.electric = true;
-    return { state, ok: true, message: towerDefinition(tower.type).name + (kind === 'electric' ? ' became electric.' : tower.tier === 2 ? ' became a pair.' : ' became a section.'), events: [{ type: 'towerUpgrade', tower: clone(tower) }] };
+    if (kind === 'mastery') { tower.tier += 1; tower.maxHp += 8; tower.hp += 8; }
+    else if (kind === 'rhythm') tower.rhythm += 1;
+    else tower.octaves += 1;
+    const message = kind === 'mastery'
+      ? towerDefinition(tower.type).name + ' deepened its technique.'
+      : kind === 'rhythm'
+        ? towerDefinition(tower.type).name + ' now enters ' + rhythmLabel(tower) + '.'
+        : towerDefinition(tower.type).name + ' opened another octave.';
+    return { state, ok: true, message, events: [{ type: 'towerUpgrade', kind, tower: clone(tower) }] };
   }
 
   function repair(input, id) {
@@ -259,7 +324,7 @@
     const candidates = state.enemies.filter(e => e.hp > 0 && distance(e, tower) <= def.range).sort((a, b) => distance(a, CENTER) - distance(b, CENTER));
     if (state.boss && state.boss.hp > 0 && !state.boss.shielded && distance(state.boss, tower) <= def.range + 35) candidates.push(state.boss);
     if (!candidates.length) return;
-    let damage = def.damage * (1 + (tower.tier - 1) * 0.35) * (tower.electric ? 1.25 : 1) * (state.conductor.chorus > 0 ? 1.25 : 1);
+    let damage = def.damage * (1 + (tower.tier - 1) * 0.35) * (1 + tower.octaves * 0.18) * (state.conductor.chorus > 0 ? 1.25 : 1);
     if (tower.accents > 0) { damage *= 1.5; tower.accents -= 1; }
     if (tower.type === 'drum') {
       const target = candidates[0];
@@ -271,12 +336,11 @@
     } else {
       const count = tower.tier;
       for (const enemy of candidates.slice(0, count)) damageEnemy(enemy, damage);
-      if (tower.electric && candidates[count]) damageEnemy(candidates[count], damage * 0.7);
     }
     events.push({ type: 'towerAttack', tower: clone(tower), target: clone(candidates[0]), damage });
   }
 
-  function onBeat(state, events, combat) {
+  function onBeat(state, events) {
     state.beatIndex += 1;
     if (state.beatIndex % 4 === 0) {
       let payout = 0;
@@ -287,10 +351,13 @@
       }
       state.resonance += payout; state.lifetimeResonance += payout;
     }
+  }
+
+  function onHalfBeat(state, events, combat) {
+    state.halfBeatIndex += 1;
     if (!combat) return;
     for (const tower of state.towers) {
-      const def = towerDefinition(tower.type);
-      if (def && state.beatIndex % def.every === 0) towerAttack(state, tower, events);
+      if (towerDefinition(tower.type) && state.halfBeatIndex % rhythmPeriod(tower) === 0) towerAttack(state, tower, events);
     }
   }
 
@@ -380,8 +447,10 @@
     if (state.ward) { state.ward.until -= seconds; if (state.ward.until <= 0) state.ward = null; }
     if (state.echo && combat) { state.echo.delay -= seconds; if (state.echo.delay <= 0) { applyGust(state, state.echo.start, state.echo.end, 0.5, events); state.echo = null; } }
     state.beatPhase += seconds;
+    state.halfBeatPhase += seconds;
     const beat = beatDuration(state);
-    while (state.beatPhase >= beat) { state.beatPhase -= beat; onBeat(state, events, combat); }
+    while (state.beatPhase >= beat) { state.beatPhase -= beat; onBeat(state, events); }
+    while (state.halfBeatPhase >= beat / 2) { state.halfBeatPhase -= beat / 2; onHalfBeat(state, events, combat); }
     if (!combat) return { state, events };
     if (state.status === 'wave') {
       state.spawnClock -= seconds;
@@ -402,16 +471,26 @@
 
   function tapPower(input, point) {
     const state = clone(input); const events = [];
-    if (!spendPower(state, 6)) return { state, ok: false, message: 'The conductor needs a breath.', events };
+    const beat = beatDuration(state);
+    const beatError = Math.min(state.beatPhase, beat - state.beatPhase);
+    const timedBeat = state.beatIndex + (state.beatPhase > beat / 2 ? 1 : 0);
+    const onBeat = beatError <= beat * 0.16 && state.touch.lastBonusBeat !== timedBeat;
+    const base = state.touch.level;
+    const bonus = onBeat ? 1 + Math.floor(state.touch.level / 2) : 0;
+    const amount = base + bonus;
+    state.resonance += amount; state.lifetimeResonance += amount; state.touch.total += amount;
+    if (onBeat) state.touch.lastBonusBeat = timedBeat;
+    events.push({ type: 'tapHarvest', point, amount, onBeat });
     const targets = state.towers.concat(state.mines.filter(m => m.level > 0)).filter(s => s.hp > 0).sort((a, b) => distance(a, point) - distance(b, point));
-    const target = targets[0];
-    if (target) {
+    const target = targets[0] && distance(targets[0], point) <= 36 ? targets[0] : null;
+    if (target && spendPower(state, 6)) {
       if (String(target.id).startsWith('mine-')) target.accent = true;
       else target.accents = 2;
       events.push({ type: 'accent', target: clone(target), point });
-      return { state, ok: true, message: String(target.id).startsWith('mine-') ? 'The next mine pulse is brighter.' : towerDefinition(target.type).name + ' carries your accent.', events };
+      return { state, ok: true, message: (onBeat ? 'On beat · ' : '') + '+' + amount + ' Resonance, and ' + (String(target.id).startsWith('mine-') ? 'the next mine pulse brightens.' : towerDefinition(target.type).name + ' carries your accent.'), events };
     }
-    return { state, ok: true, message: 'The conductor answers the empty field.', events: [{ type: 'accent', point }] };
+    const supportNote = target ? ' The conductor needs more power to accent it.' : '';
+    return { state, ok: true, message: (onBeat ? 'On beat · ' : '') + '+' + amount + ' Resonance.' + supportNote, events };
   }
 
   function segmentDistance(point, a, b) {
@@ -482,7 +561,8 @@
 
   root.ResonanceDefense = {
     W, H, BEAT, CENTER, DEPOSITS, TOWERS, WAVES, POWER_CHOICES,
-    initial, validState, beatDuration, setTempo, mineRate, buildCost, mineCost, placementReason, placeTower, buildMine, upgradeMine, upgradeTower, repair,
+    initial, validState, beatDuration, setTempo, tempoCost, raiseTempo, touchCost, deepenTouch, mineRate, buildCost, mineCost, placementReason, placeTower, buildMine, upgradeMine,
+    rhythmMaximum, rhythmPeriod, rhythmLabel, towerUpgradeCost, upgradeTower, repair,
     startWave, beginBoss, pause, settleAway, advance, tapPower, swipePower, holdPower, sing, choosePower, retry, selectAt
   };
 }(typeof window !== 'undefined' ? window : globalThis));

@@ -194,14 +194,16 @@
         if (selected) { c.strokeStyle = '#ffffffaa'; c.lineWidth = 1; c.beginPath(); c.arc(0, 0, 24, 0, Math.PI * 2); c.stroke(); c.strokeStyle = def.color + '26'; c.beginPath(); c.arc(0, 0, def.range, 0, Math.PI * 2); c.stroke(); }
         c.strokeStyle = def.color; c.fillStyle = def.color + '18'; c.lineWidth = 1.5;
         if (structure.type === 'violin') {
-          const lines = Math.min(3, structure.tier);
-          for (let i = 0; i < lines; i++) { const ox = (i - (lines - 1) / 2) * 6; c.beginPath(); c.ellipse(ox, 0, 7, 18, -0.2, 0, Math.PI * 2); c.fill(); c.stroke(); c.beginPath(); c.moveTo(ox - 12, -13); c.lineTo(ox + 12, 13); c.stroke(); }
+          c.beginPath(); c.ellipse(0, 0, 7, 18, -0.2, 0, Math.PI * 2); c.fill(); c.stroke(); c.beginPath(); c.moveTo(-12, -13); c.lineTo(12, 13); c.stroke();
         } else if (structure.type === 'drum') {
           c.beginPath(); c.arc(0, 0, 15 + structure.tier * 2, 0, Math.PI * 2); c.fill(); c.stroke(); c.beginPath(); c.arc(0, 0, 7, 0, Math.PI * 2); c.stroke();
         } else {
-          for (let i = 0; i < structure.tier; i++) { const ox = (i - (structure.tier - 1) / 2) * 7; c.beginPath(); c.moveTo(ox, -18); c.lineTo(ox + 12, 5); c.quadraticCurveTo(ox, 17, ox - 12, 5); c.closePath(); c.fill(); c.stroke(); }
+          c.beginPath(); c.moveTo(0, -18); c.lineTo(12, 5); c.quadraticCurveTo(0, 17, -12, 5); c.closePath(); c.fill(); c.stroke();
         }
-        if (structure.electric) { c.strokeStyle = '#9be7ff'; c.beginPath(); c.arc(0, 0, 22 + Math.sin(this.time * 5) * 2, 0, Math.PI * 2); c.stroke(); }
+        c.fillStyle = '#ffffffaa';
+        for (let i = 0; i < structure.tier; i++) { const a = -Math.PI * 0.7 + i * 0.45; c.beginPath(); c.arc(Math.cos(a) * 24, Math.sin(a) * 24, 1.6, 0, Math.PI * 2); c.fill(); }
+        if (structure.rhythm > 0) { c.strokeStyle = '#f4ce9eaa'; c.setLineDash([2, 4 - Math.min(2, structure.rhythm)]); c.beginPath(); c.arc(0, 0, 28, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); }
+        if (structure.octaves > 0) { c.strokeStyle = '#a6bfee88'; for (let i = 0; i < structure.octaves; i++) { c.beginPath(); c.arc(0, 0, 32 + i * 4 + Math.sin(this.time * 3 + i) * 1.2, -0.8, 0.8); c.stroke(); } }
         if (structure.accents > 0) { c.strokeStyle = '#ffffffcc'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, 27 + Math.sin(this.time * 7) * 2, 0, Math.PI * 2); c.stroke(); }
         c.restore(); this.drawHealth(c, structure);
       }
@@ -260,6 +262,7 @@
         if (effect.type === 'towerAttack') { c.beginPath(); c.moveTo(effect.tower.x, effect.tower.y); c.lineTo(effect.target.x, effect.target.y); c.stroke(); }
         else if (effect.type === 'gust') { c.lineWidth = 5 * effect.strength; c.beginPath(); c.moveTo(effect.start.x, effect.start.y); c.lineTo(effect.end.x, effect.end.y); c.stroke(); }
         else if (effect.type === 'minePayout') { c.beginPath(); c.arc(effect.mine.x, effect.mine.y, 8 + progress * 32, 0, Math.PI * 2); c.stroke(); c.beginPath(); c.moveTo(effect.mine.x, effect.mine.y); c.lineTo(D.CENTER.x, D.CENTER.y); c.stroke(); }
+        else if (effect.type === 'tapHarvest') { c.beginPath(); c.arc(effect.point.x, effect.point.y, 5 + progress * (effect.onBeat ? 48 : 30), 0, Math.PI * 2); c.stroke(); c.font = '11px -apple-system, sans-serif'; c.textAlign = 'center'; c.fillText('+' + effect.amount + (effect.onBeat ? ' · beat' : ''), effect.point.x, effect.point.y - 12 - progress * 18); }
         else if (effect.type === 'bossStrike') { c.strokeStyle = '#ec9d92'; c.lineWidth = 3; c.beginPath(); c.arc(D.CENTER.x, D.CENTER.y, 70 + progress * 180, effect.angle - 0.7, effect.angle + 0.7); c.stroke(); }
         else { const p = effect.point || effect.target || D.CENTER; c.beginPath(); c.arc(p.x, p.y, 5 + progress * (effect.quiet ? 22 : 46), 0, Math.PI * 2); c.stroke(); }
         c.globalAlpha = 1;

@@ -3,7 +3,7 @@
   'use strict';
   const D = window.ResonanceDefense;
   const $ = id => document.getElementById(id);
-  const STORAGE_KEY = 'resonance-orchestra-study-v2';
+  const STORAGE_KEY = 'resonance-orchestra-study-v3';
   const WORLD_AUDIO = {
     awakening: { mode: 'pentatonic', root: 50 },
     current: { mode: 'dorian', root: 50 },
@@ -17,7 +17,7 @@
   let starting = null;
   let muted = false;
   let reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let mode = 'build';
+  let mode = 'conduct';
   let pendingBuild = null;
   let selectedId = 'tower-1';
   let tempo = 96;
@@ -82,8 +82,7 @@
     const violin = alive('violin');
     const drum = alive('drum');
     const bell = alive('bell');
-    const electric = state.towers.filter(tower => tower.hp > 0 && tower.electric);
-    return { bloom: 1, string: tier(violin), bell: tier(bell), pulse: tier(drum) || 0.45, electric: tier(electric), pad: 0.55 + Math.min(1.4, state.towers.length * 0.14), conductor: 1 };
+    return { bloom: 1, string: tier(violin), bell: tier(bell), pulse: tier(drum) || 0.45, pad: 0.55 + Math.min(1.4, state.towers.length * 0.14), conductor: 1 };
   }
 
   function syncAudio(syncTransport = false) {
@@ -118,9 +117,11 @@
   function eventSound(event) {
     if (!awake) return;
     if (event.type === 'towerAttack') {
-      const voice = event.tower.electric ? 'electric' : event.tower.type === 'violin' ? 'string' : event.tower.type === 'drum' ? 'pulse' : 'bell';
-      audio.play(voice, (state.beatIndex + event.tower.tier * 2) % 9, event.tower.electric ? 0.62 : 0.46, voice === 'bell' ? 1.1 : voice === 'electric' ? 0.72 : 0.38);
+      const voice = event.tower.type === 'violin' ? 'string' : event.tower.type === 'drum' ? 'pulse' : 'bell';
+      const degree = (state.halfBeatIndex + event.tower.tier * 2) % 9;
+      for (let octave = 0; octave <= event.tower.octaves; octave++) audio.play(voice, degree, 0.46 / (1 + octave * 0.34), voice === 'bell' ? 1.1 : 0.38, octave);
     } else if (event.type === 'minePayout') audio.play('bloom', event.mine.level > 1 ? 3 : 0, 0.32, 0.75);
+    else if (event.type === 'tapHarvest') audio.play('bloom', Math.round(event.point.x / D.W * 6), event.onBeat ? 0.5 : 0.28, event.onBeat ? 0.7 : 0.42);
     else if (event.type === 'accent') audio.play('conductor', 4, 0.42, 0.36);
     else if (event.type === 'gust') { audio.play('conductor', 7, 0.5, 0.55); audio.play('string', 9, 0.34, 0.42); }
     else if (event.type === 'sing') { [0, 2, 4].forEach((degree, index) => setTimeout(() => audio.play('conductor', degree, 0.62 - index * 0.08, 2.4), index * 150)); }
@@ -134,7 +135,7 @@
 
   function processEvents(events) {
     for (const event of events) {
-      if (['towerAttack', 'minePayout', 'accent', 'gust', 'ward', 'bossStrike'].includes(event.type)) stage.effect(event);
+      if (['towerAttack', 'minePayout', 'tapHarvest', 'accent', 'gust', 'ward', 'bossStrike'].includes(event.type)) stage.effect(event);
       eventSound(event);
       if (event.type === 'waveStart') banner('Wave ' + event.wave + ' · the movement begins');
       else if (event.type === 'waveClear') toast('Wave ' + event.wave + ' resolved · +' + event.reward + ' Resonance');
@@ -145,6 +146,7 @@
       else if (event.type === 'defeat') openDefeat();
     }
     if (events.some(event => ['built', 'towerUpgrade', 'repaired', 'structureDown'].includes(event.type))) syncAudio();
+    if (events.some(event => event.type === 'tempoRaised')) { tempo = state.tempo; syncAudio(true); }
   }
 
   function apply(result, announce = true) {
@@ -208,8 +210,7 @@
   function selectionName(structure) {
     if (!structure) return '';
     if (String(structure.id).startsWith('mine-')) return structure.protected ? 'Heart mine' : structure.level > 1 ? 'Expanded outer mine' : 'Outer mine';
-    const prefix = structure.tier === 1 ? 'Solo ' : structure.tier === 2 ? 'Paired ' : 'Sectional ';
-    return prefix + D.TOWERS[structure.type].name.toLowerCase() + (structure.electric ? ' · electric' : '');
+    return D.TOWERS[structure.type].name;
   }
 
   function renderSelection() {
@@ -220,19 +221,26 @@
     const isMine = String(structure.id).startsWith('mine-');
     $('selection-emblem').textContent = isMine ? ICONS.mine : ICONS[structure.type];
     $('selection-name').textContent = selectionName(structure);
-    $('selection-role').textContent = isMine ? (structure.level * 4) + ' Resonance every four beats' : D.TOWERS[structure.type].name + ' · ' + (structure.type === 'violin' ? 'focus' : structure.type === 'drum' ? 'area' : 'chain');
+    $('selection-role').textContent = isMine
+      ? (structure.level * 4) + ' Resonance every four beats'
+      : (structure.type === 'violin' ? 'focus' : structure.type === 'drum' ? 'area' : 'chain') + ' · ' + D.rhythmLabel(structure) + ' · mastery ' + structure.tier + (structure.octaves ? ' · +' + structure.octaves + ' octave' + (structure.octaves > 1 ? 's' : '') : '');
     $('selection-health').textContent = structure.protected ? 'protected' : Math.ceil(structure.hp) + ' / ' + structure.maxHp;
-    $('grow-section').hidden = isMine;
-    $('go-electric').hidden = isMine;
+    $('train').hidden = isMine;
+    $('subdivide').hidden = isMine;
+    $('add-octave').hidden = isMine;
     if (isMine) {
       $('repair').innerHTML = structure.hp <= 0 ? 'Rebuild <span>✧ ' + Math.max(10, Math.ceil((structure.invested || 40) * 0.4)) + '</span>' : structure.level < 2 ? 'Expand mine <span>✧ 80</span>' : 'Repair <span>✧ 10</span>';
       $('repair').disabled = structure.protected && structure.level >= 2 || (structure.level >= 2 && structure.hp >= structure.maxHp);
     } else {
-      const sectionCost = structure.tier === 1 ? 45 : structure.tier === 2 ? 90 : Infinity;
-      $('grow-section').innerHTML = structure.tier === 1 ? 'Grow pair <span>✧ 45</span>' : structure.tier === 2 ? 'Grow section <span>✧ 90</span>' : 'Full section <span>—</span>';
-      $('grow-section').disabled = !Number.isFinite(sectionCost) || state.resonance < sectionCost || structure.hp <= 0;
-      $('go-electric').innerHTML = structure.electric ? 'Electric <span>active</span>' : 'Go electric <span>✧ 120</span>';
-      $('go-electric').disabled = structure.electric || structure.tier < 2 || state.resonance < 120 || structure.hp <= 0;
+      const masteryCost = D.towerUpgradeCost(structure, 'mastery');
+      const rhythmCost = D.towerUpgradeCost(structure, 'rhythm');
+      const octaveCost = D.towerUpgradeCost(structure, 'octave');
+      $('train').innerHTML = Number.isFinite(masteryCost) ? 'Train <span>✧ ' + masteryCost + '</span>' : 'Mastery <span>complete</span>';
+      $('train').disabled = !Number.isFinite(masteryCost) || state.resonance < masteryCost || structure.hp <= 0;
+      $('subdivide').innerHTML = Number.isFinite(rhythmCost) ? 'Subdivide <span>✧ ' + rhythmCost + '</span>' : 'Rhythm <span>densest</span>';
+      $('subdivide').disabled = !Number.isFinite(rhythmCost) || state.resonance < rhythmCost || structure.hp <= 0;
+      $('add-octave').innerHTML = Number.isFinite(octaveCost) ? 'Add octave <span>✧ ' + octaveCost + '</span>' : 'Register <span>open</span>';
+      $('add-octave').disabled = !Number.isFinite(octaveCost) || state.resonance < octaveCost || structure.hp <= 0;
       const repairCost = structure.hp <= 0 ? Math.max(10, Math.ceil((structure.invested || 40) * 0.4)) : 10;
       $('repair').innerHTML = structure.hp <= 0 ? 'Rebuild <span>✧ ' + repairCost + '</span>' : 'Repair <span>✧ 10</span>';
       $('repair').disabled = structure.hp >= structure.maxHp || state.resonance < repairCost;
@@ -255,7 +263,10 @@
     $('rate').textContent = fmt(D.mineRate(state));
     $('health').textContent = Math.ceil(state.conductor.hp);
     $('power').textContent = Math.floor(state.conductor.power);
+    $('tempo').value = String(state.tempo);
+    $('tempo-value').textContent = state.tempo + ' BPM';
     $('power-fill').style.width = state.conductor.power / state.conductor.maxPower * 100 + '%';
+    $('tap-value').textContent = '+' + state.touch.level;
     $('sing').disabled = state.conductor.power < 45 || state.conductor.voiceCooldown > 0 || mode !== 'conduct';
     $('sing').querySelector('small').textContent = state.conductor.voiceCooldown > 0 ? Math.ceil(state.conductor.voiceCooldown) + 's' : '45';
     const wave = waveText();
@@ -274,9 +285,17 @@
       button.classList.toggle('selected', pendingBuild === type);
     });
     $('build-mine').disabled = !Number.isFinite(D.mineCost(state)) || state.resonance < 60;
-    $('build-hint').textContent = pendingBuild ? 'Tap open space to place the ' + D.TOWERS[pendingBuild].name.toLowerCase() + '.' : mode === 'conduct' ? 'Conduct mode · your gestures support the orchestra.' : 'Choose an instrument, then place it in the arena.';
+    const touchCost = D.touchCost(state);
+    $('deepen-touch').disabled = !Number.isFinite(touchCost) || state.resonance < touchCost;
+    $('cost-touch').textContent = Number.isFinite(touchCost) ? fmt(touchCost, 0) : 'full';
+    $('touch-detail').textContent = Number.isFinite(touchCost) ? 'Every tap gathers ' + (state.touch.level + 1) : 'Touch development complete';
+    const tempoCost = D.tempoCost(state);
+    $('raise-tempo').disabled = !Number.isFinite(tempoCost) || state.resonance < tempoCost;
+    $('cost-tempo').textContent = Number.isFinite(tempoCost) ? fmt(tempoCost, 0) : 'full';
+    $('tempo-detail').textContent = Number.isFinite(tempoCost) ? 'Orchestra-wide · ' + (96 + (state.tempoLevel + 1) * 4) + ' BPM' : state.tempo + ' BPM · ceiling';
+    $('build-hint').textContent = pendingBuild ? 'Tap open space to place the ' + D.TOWERS[pendingBuild].name.toLowerCase() + '.' : mode === 'conduct' ? 'Conduct mode · tap to gather; aim near a structure to accent it.' : 'Choose an instrument, then place it in the arena.';
     renderSelection();
-    $('status-line').textContent = state.powerChoice ? POWER_NAMES[state.powerChoice] + ' shapes this performance.' : state.status === 'build' ? 'The mines keep growing while danger waits.' : 'The orchestra plays; you lend it support.';
+    $('status-line').textContent = state.powerChoice ? POWER_NAMES[state.powerChoice] + ' shapes this performance.' : mode === 'conduct' ? 'Every tap gathers. Aim at the orchestra to add an accent.' : 'The mines keep growing while danger waits.';
     stage.configure(state, { mode, pendingBuild, selectedId, reduced });
     if (state.status === 'choice' && !$('choice-dialog').open) $('choice-dialog').showModal();
     if (state.status !== 'choice' && $('choice-dialog').open) $('choice-dialog').close();
@@ -296,7 +315,7 @@
   function reset() {
     clearSave();
     state = D.initial();
-    selectedId = 'tower-1'; pendingBuild = null; mode = 'build'; world = 'awakening'; tempo = 96;
+    selectedId = 'tower-1'; pendingBuild = null; mode = 'conduct'; world = 'awakening'; tempo = 96;
     stage.clear();
     document.querySelectorAll('[data-build]').forEach(button => button.classList.remove('selected'));
     selectTab('build', false);
@@ -309,13 +328,14 @@
       state.resonance = which === 'boss' ? 520 : 280;
       state.lifetimeResonance = state.resonance;
       state.mines[1].level = 2; state.mines[1].hp = 40; state.mines[1].invested = 140;
-      state.towers[0].tier = which === 'boss' ? 3 : 2; state.towers[0].electric = which === 'boss'; state.towers[0].invested = which === 'boss' ? 255 : 45;
-      state.towers.push({ id: 'tower-2', type: 'drum', x: 118, y: 248, hp: 53, maxHp: 53, tier: 2, electric: false, accents: 0, invested: 140 });
-      state.towers.push({ id: 'tower-3', type: 'bell', x: 180, y: 164, hp: 38, maxHp: 38, tier: 2, electric: false, accents: 0, invested: 190 });
+      state.touch.level = which === 'boss' ? 4 : 2; state.tempoLevel = which === 'boss' ? 4 : 2; state.tempo = 96 + state.tempoLevel * 4;
+      state.towers[0].tier = which === 'boss' ? 3 : 2; state.towers[0].rhythm = 2; state.towers[0].octaves = which === 'boss' ? 2 : 1; state.towers[0].invested = which === 'boss' ? 430 : 175;
+      state.towers.push({ id: 'tower-2', type: 'drum', x: 118, y: 248, hp: 53, maxHp: 53, tier: 2, rhythm: 1, octaves: 1, accents: 0, invested: 270 });
+      state.towers.push({ id: 'tower-3', type: 'bell', x: 180, y: 164, hp: 38, maxHp: 38, tier: 2, rhythm: 1, octaves: 1, accents: 0, invested: 320 });
       state.nextId = which === 'boss' ? 5 : 4; state.wave = which === 'boss' ? 6 : 3; state.status = which === 'boss' ? 'bossReady' : 'build'; state.powerChoice = which === 'boss' ? 'echo' : null;
-      if (which === 'boss') state.towers.push({ id: 'tower-4', type: 'violin', x: 260, y: 180, hp: 38, maxHp: 38, tier: 2, electric: true, accents: 0, invested: 205 });
+      if (which === 'boss') state.towers.push({ id: 'tower-4', type: 'violin', x: 260, y: 180, hp: 38, maxHp: 38, tier: 2, rhythm: 1, octaves: 2, accents: 0, invested: 420 });
     }
-    selectedId = 'tower-1'; pendingBuild = null; mode = 'build'; stage.clear(); syncAudio(); save(); render(); toast(which === 'first' ? 'First defense.' : which === 'growing' ? 'A growing orchestra.' : 'The crisis is ready when you are.');
+    selectedId = 'tower-1'; pendingBuild = null; mode = 'conduct'; tempo = state.tempo; stage.clear(); syncAudio(true); save(); render(); toast(which === 'first' ? 'First defense.' : which === 'growing' ? 'A growing orchestra.' : 'The crisis is ready when you are.');
   }
 
   $('awaken').addEventListener('click', awaken);
@@ -324,12 +344,17 @@
   $('sing').addEventListener('click', async () => { await awaken(); apply(D.sing(state)); });
   $('wave-action').addEventListener('click', startOrResume);
   $('resume').addEventListener('click', startOrResume);
-  $('conduct-mode').addEventListener('click', () => { mode = 'conduct'; if (state.status === 'paused') apply(D.startWave(state), false); else render(); selectTab('build', false); });
+  const returnToConduct = () => { mode = 'conduct'; if (state.status === 'paused') apply(D.startWave(state), false); else render(); selectTab('build', false); };
+  $('conduct-mode').addEventListener('click', returnToConduct);
+  $('conduct-mode-build').addEventListener('click', returnToConduct);
   document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => selectTab(button.dataset.tab)));
   document.querySelectorAll('[data-build]').forEach(button => button.addEventListener('click', () => { pauseForWorkshop(); pendingBuild = button.dataset.build; document.querySelectorAll('[data-build]').forEach(other => other.classList.toggle('selected', other === button)); render(); }));
   $('build-mine').addEventListener('click', () => { const result = D.buildMine(state); if (result.ok) selectedId = 'mine-outer'; apply(result); });
-  $('grow-section').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'section')); });
-  $('go-electric').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'electric')); });
+  $('deepen-touch').addEventListener('click', () => apply(D.deepenTouch(state)));
+  $('raise-tempo').addEventListener('click', () => apply(D.raiseTempo(state)));
+  $('train').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'mastery')); });
+  $('subdivide').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'rhythm')); });
+  $('add-octave').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'octave')); });
   $('repair').addEventListener('click', () => { const structure = selectedStructure(); if (!structure) return; apply(String(structure.id).startsWith('mine-') && structure.hp > 0 && structure.level < 2 ? D.upgradeMine(state, structure.id) : D.repair(state, structure.id)); });
   document.querySelectorAll('[data-choice]').forEach(button => button.addEventListener('click', () => apply(D.choosePower(state, button.dataset.choice))));
   $('retry').addEventListener('click', () => { $('defeat-dialog').close(); apply(D.retry(state)); });

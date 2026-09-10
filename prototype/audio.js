@@ -7,7 +7,7 @@
     dorian: [0, 2, 3, 5, 7, 9, 10],
     lydian: [0, 2, 4, 6, 7, 9, 11]
   };
-  const VOICES = ["bloom", "string", "electric", "bell", "pulse", "pad", "conductor"];
+  const VOICES = ["bloom", "string", "bell", "pulse", "pad", "conductor"];
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0));
 
   class ResonanceAudio {
@@ -16,7 +16,7 @@
       this.config = {
         bpm: 78, root: 48, mode: "pentatonic", density: 0.48,
         volume: 0.72, muted: false, playing: false,
-        levels: { bloom: 0.8, string: 0.68, electric: 0, bell: 0.5, pulse: 0.34, pad: 0.42, conductor: 1 }
+        levels: { bloom: 0.8, string: 0.68, bell: 0.5, pulse: 0.34, pad: 0.42, conductor: 1 }
       };
       this.ctx = null;
       this.master = null;
@@ -153,7 +153,6 @@
       if ([2, 6, 10, 14].includes(barStep)) this._auto("string", [4, 2, 5, 1][(barStep - 2) / 4] + (bar % 2 ? 5 : 0), 0.22 + d * 0.17, 0.55, time);
       if (this.config.levels.string >= 2 && [0, 4, 8, 12].includes(barStep)) this._auto("string", [0, 3, 1, 4][barStep / 4] - 5, 0.16 + d * 0.12, 0.82, time);
       if (this.config.levels.string >= 3 && [3, 7, 11, 15].includes(barStep)) this._auto("string", [7, 9, 6, 8][(barStep - 3) / 4], 0.13 + d * 0.1, 0.4, time);
-      if (this.config.levels.electric > 0 && [1, 5, 9, 13].includes(barStep)) this._auto("electric", [7, 4, 9, 6][(barStep - 1) / 4], 0.17 + d * 0.12, 0.7, time);
       if ((barStep === 5 || barStep === 13) && (d > 0.3 || this.config.levels.bell > 1)) this._auto("bell", [7, 9, 11, 6][bar % 4], 0.2 + d * 0.14, 1.45, time);
       if (this.config.levels.bell >= 2 && barStep === 15) this._auto("bell", [12, 10, 14, 11][bar % 4], 0.16 + d * 0.1, 1.1, time);
       if (barStep === 0 && bar % 2 === 0) this._auto("pad", [0, 3, 4, 1][(bar / 2) % 4], 0.16 + d * 0.12, 5.2, time);
@@ -176,9 +175,10 @@
       return level > 1 ? Math.log2(level) / Math.log2(25) : 0;
     }
 
-    play(voice, degree, velocity = 0.6, duration = 0.7) {
+    play(voice, degree, velocity = 0.6, duration = 0.7, octave = 0) {
       if (!this.ctx || this.destroyed || !VOICES.includes(voice)) return false;
-      return this._sound(voice, degree, velocity, duration, this.ctx.currentTime + 0.005, false);
+      const shiftedDegree = degree + MODES[this.config.mode].length * Math.max(0, Math.round(octave));
+      return this._sound(voice, shiftedDegree, velocity, duration, this.ctx.currentTime + 0.005, false);
     }
 
     _frequency(degree) {
@@ -215,15 +215,6 @@
       if (voice === "bloom") {
         out.gain.setValueAtTime(0.0001, time); out.gain.exponentialRampToValueAtTime(velocity * 0.34, time + 0.12); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
         osc("sine", f, 1); osc("triangle", f * 2, 0.13 + variety * 0.025, -5 - variety * 3);
-      } else if (voice === "electric") {
-        out.gain.setValueAtTime(0.0001, time); out.gain.exponentialRampToValueAtTime(velocity * 0.26, time + 0.018); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-        const filter = c.createBiquadFilter(); filter.type = "lowpass"; filter.Q.value = 5; filter.frequency.setValueAtTime(Math.min(9000, f * 20), time); filter.frequency.exponentialRampToValueAtTime(Math.max(650, f * 3), time + duration);
-        const first = c.createOscillator(), second = c.createOscillator();
-        first.type = "sawtooth"; first.frequency.value = f; first.detune.value = -9;
-        second.type = "square"; second.frequency.value = f; second.detune.value = 9;
-        const secondGain = c.createGain(); secondGain.gain.value = 0.16;
-        first.connect(filter); second.connect(secondGain).connect(filter); filter.connect(out);
-        first.start(time); second.start(time); first.stop(stopAt); second.stop(stopAt); nodes.push(first, second);
       } else if (voice === "string") {
         out.gain.setValueAtTime(Math.max(0.0001, velocity * 0.33), time); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
         const filter = c.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.setValueAtTime(Math.min(7600, f * (12 + variety * 3)), time); filter.frequency.exponentialRampToValueAtTime(Math.max(500, f * 2), time + duration);

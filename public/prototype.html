@@ -97,8 +97,17 @@ canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%
 .build-grid small { display: block; overflow: hidden; color: #738398; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .build-grid strong { color: var(--voice); font-size: 11px; font-weight: 500; white-space: nowrap; }
 .build-grid i { font-style: normal; }
+.development-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 7px; }
+.development-strip button { min-width: 0; min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 9px; border: 1px solid #b0e8db1b; border-radius: 9px; background: #b0e8db06; text-align: left; }
+.development-strip span { min-width: 0; }
+.development-strip b, .development-strip small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.development-strip b { color: #cbd8e4; font-size: 11px; }
+.development-strip small { margin-top: 2px; color: #738398; font-size: 9px; }
+.development-strip strong { color: var(--accent); font-size: 10px; font-weight: 500; white-space: nowrap; }
+.development-strip i { font-style: normal; }
 .deck-action { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 9px; }
 .deck-action p { margin: 0; color: #8392a5; font-size: 11px; }
+.deck-action > div { display: flex; flex: none; gap: 5px; }
 .primary-button, .secondary-button, .selection-actions button, .mode-note button { min-height: 40px; padding: 8px 12px; border: 1px solid #ffffff16; border-radius: 8px; background: #ffffff05; font-size: 12px; }
 .primary-button { flex: none; border-color: var(--accent); background: var(--accent); color: #132724; font-weight: 600; }
 
@@ -111,7 +120,7 @@ canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%
 .selection-card h2 { margin: 0; font: 18px Georgia, serif; }
 .selection-card p { margin: 2px 0 0; color: #7d8da2; font-size: 11px; }
 .selection-card > div:first-child > strong { color: #93a3b7; font-size: 11px; }
-.selection-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
+.selection-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-top: 10px; }
 .selection-actions button { display: flex; justify-content: space-between; gap: 5px; padding: 7px 9px; font-size: 11px; }
 .selection-actions span { color: var(--accent); white-space: nowrap; }
 .mode-note { display: flex; align-items: center; gap: 8px; margin-top: 9px; color: #77879b; font-size: 11px; }
@@ -158,6 +167,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
   .wordmark small { display: none; }
   .hud { grid-template-rows: auto; height: 52px; }
   .build-grid button { min-height: 48px; }
+  .development-strip button { min-height: 38px; }
   .power-row { height: 42px; }
   #toast { bottom: 224px; }
 }
@@ -172,7 +182,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
   .build-grid small { display: none; }
   .build-grid .emblem { width: 27px; height: 27px; }
   .power-key, .sing-button { padding-inline: 6px; }
-  .selection-actions { grid-template-columns: 1fr; }
+  .selection-actions { grid-template-columns: repeat(2, 1fr); }
   .mode-note span { display: none; }
 }
 
@@ -184,7 +194,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
 <body>
   <main class="game-shell">
     <header class="topbar">
-      <div class="wordmark"><span>◌</span> resonance <small>PLAY STUDY 02</small></div>
+      <div class="wordmark"><span>◌</span> resonance <small>PLAY STUDY 03</small></div>
       <div class="top-actions">
         <button id="mute" class="icon-button" aria-label="Mute sound">♫</button>
         <button id="motion" class="quiet-button" aria-pressed="false">Gentle motion</button>
@@ -198,7 +208,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
         <div class="health-block"><span>CONDUCTOR</span><strong><b id="health">100</b>%</strong><small>power <b id="power">100</b></small></div>
       </div>
       <div class="arena-wrap">
-        <canvas id="stage" tabindex="0" role="application" aria-label="Radial orchestra arena. In Conduct mode, tap to accent, swipe to push, and hold to ward. In Build mode, tap to place or inspect structures."></canvas>
+        <canvas id="stage" tabindex="0" role="application" aria-label="Radial orchestra arena. In Conduct mode, every tap gathers Resonance; aim near a structure to accent it, swipe to push, and hold to ward. In Build mode, tap to place or inspect structures."></canvas>
         <div id="start-prompt" class="start-prompt">
           <button id="awaken" class="awaken-button"><span>◉</span> Awaken the orchestra</button>
           <p>Sound on. The mines have kept time.</p>
@@ -207,7 +217,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
         <button id="resume" class="resume-button" hidden>Resume the waiting movement</button>
       </div>
       <div class="power-row" aria-label="Conductor powers">
-        <div class="power-key"><b>Tap</b><span>accent</span><small>6</small></div>
+        <div class="power-key"><b>Tap</b><span>gather · accent</span><small id="tap-value">+1</small></div>
         <div class="power-key"><b>Swipe</b><span>gust</span><small>35</small></div>
         <div class="power-key"><b>Hold</b><span>ward</span><small>15/s</small></div>
         <button id="sing" class="sing-button"><b>Sing</b><span>chorus</span><small>45</small></button>
@@ -230,16 +240,21 @@ dialog p { color: #93a2b5; font-size: 13px; }
             <button data-build="bell" style="--voice:#f4ce9e"><span class="emblem">◇</span><span><b>Bell</b><small>chain · every bar</small></span><strong>✧ <i id="cost-bell">100</i></strong></button>
             <button id="build-mine" style="--voice:#b0e8db"><span class="emblem">✦</span><span><b>Outer mine</b><small>4 resonance per bar</small></span><strong>✧ <i id="cost-mine">60</i></strong></button>
           </div>
-          <div class="deck-action"><p id="build-hint">Choose an instrument, then place it in the arena.</p><button id="wave-action" class="primary-button">Begin wave 1</button></div>
+          <div class="development-strip" aria-label="Conductor and orchestra development">
+            <button id="deepen-touch"><span><b>Deepen touch</b><small id="touch-detail">Every tap gathers 2</small></span><strong>✧ <i id="cost-touch">25</i></strong></button>
+            <button id="raise-tempo"><span><b>Raise tempo</b><small id="tempo-detail">Orchestra-wide · 100 BPM</small></span><strong>✧ <i id="cost-tempo">50</i></strong></button>
+          </div>
+          <div class="deck-action"><p id="build-hint">Tap the field to gather, or choose something to build.</p><div><button id="conduct-mode-build" class="secondary-button">Conduct</button><button id="wave-action" class="primary-button">Begin wave 1</button></div></div>
         </section>
 
         <section id="tab-orchestra" class="tab-panel" hidden>
           <div id="selection-empty" class="empty-selection"><span>◌</span><div><b>Inspect the orchestra</b><p>Enter Build mode, then tap any instrument or mine.</p></div></div>
           <div id="selection-card" class="selection-card" hidden>
-            <div><span id="selection-emblem" class="selection-emblem">≋</span><div><h2 id="selection-name">Solo violin</h2><p id="selection-role"></p></div><strong id="selection-health">30 / 30</strong></div>
+            <div><span id="selection-emblem" class="selection-emblem">≋</span><div><h2 id="selection-name">Violin</h2><p id="selection-role"></p></div><strong id="selection-health">30 / 30</strong></div>
             <div class="selection-actions">
-              <button id="grow-section">Grow section <span>✧ 45</span></button>
-              <button id="go-electric">Go electric <span>✧ 120</span></button>
+              <button id="train">Train <span>✧ 45</span></button>
+              <button id="subdivide">Subdivide <span>✧ 55</span></button>
+              <button id="add-octave">Add octave <span>✧ 75</span></button>
               <button id="repair">Repair <span>✧ 10</span></button>
             </div>
           </div>
@@ -256,7 +271,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
             <button id="reset" class="secondary-button danger">Reset study</button>
           </div>
           <div class="scenario-row"><span>Jump to</span><button data-scenario="first">First defense</button><button data-scenario="growing">Growing orchestra</button><button data-scenario="boss">Boss ready</button></div>
-          <p class="prototype-question">Can a mine-funded, self-playing defense feel like one growing orchestra that you support?</p>
+          <p class="prototype-question">Can active touch income and beat-/pitch-relative development make every domain feel like one musical incremental system?</p>
         </section>
       </div>
     </section>
@@ -452,6 +467,8 @@ dialog p { color: #93a2b5; font-size: 13px; }
     echo: { id: 'echo', name: 'Reverberating gust', description: 'Every swipe returns one beat later as a softer second push.' },
     linger: { id: 'linger', name: 'Lingering ward', description: 'Your ward remains for two seconds after you lift your hand.' }
   };
+  const TEMPO_COSTS = [50, 85, 130, 190, 270, 370];
+  const TOUCH_COSTS = [25, 65, 140];
 
   const clone = value => JSON.parse(JSON.stringify(value));
   const clamp = (value, lo, hi) => Math.max(lo, Math.min(hi, Number(value) || 0));
@@ -462,14 +479,17 @@ dialog p { color: #93a2b5; font-size: 13px; }
 
   function initial() {
     return {
-      version: 2,
+      version: 3,
       seed: 1937,
       resonance: 20,
       lifetimeResonance: 20,
       elapsed: 0,
       tempo: 96,
+      tempoLevel: 0,
       beatPhase: 0,
       beatIndex: 0,
+      halfBeatPhase: 0,
+      halfBeatIndex: 0,
       status: 'build',
       resumeStatus: null,
       wave: 0,
@@ -478,12 +498,13 @@ dialog p { color: #93a2b5; font-size: 13px; }
       spawnClock: 0,
       endless: 0,
       conductor: { hp: 100, maxHp: 100, power: 100, maxPower: 100, chorus: 0, voiceCooldown: 0 },
+      touch: { level: 1, lastBonusBeat: -1, total: 0 },
       mines: [
         { id: 'mine-heart', deposit: 'heart', x: 180, y: 316, level: 1, hp: 999, maxHp: 999, protected: true, accent: false, invested: 0 },
         { id: 'mine-outer', deposit: 'outer', x: 72, y: 126, level: 0, hp: 40, maxHp: 40, protected: false, accent: false, invested: 0 }
       ],
       towers: [
-        { id: 'tower-1', type: 'violin', x: 226, y: 252, hp: 30, maxHp: 30, tier: 1, electric: false, accents: 0, invested: 0 }
+        { id: 'tower-1', type: 'violin', x: 226, y: 252, hp: 30, maxHp: 30, tier: 1, rhythm: 0, octaves: 0, accents: 0, invested: 0 }
       ],
       enemies: [],
       boss: null,
@@ -499,15 +520,17 @@ dialog p { color: #93a2b5; font-size: 13px; }
     const finite = (...values) => values.every(Number.isFinite);
     const point = item => item && finite(item.x, item.y);
     const structure = item => item && typeof item.id === 'string' && finite(item.x, item.y, item.hp, item.maxHp) && item.maxHp > 0;
-    const tower = item => structure(item) && !!towerDefinition(item.type) && finite(item.tier, item.accents, item.invested) && item.tier >= 1;
+    const tower = item => structure(item) && !!towerDefinition(item.type) && finite(item.tier, item.rhythm, item.octaves, item.accents, item.invested) && item.tier >= 1 && item.rhythm >= 0 && item.octaves >= 0;
     const mine = item => structure(item) && typeof item.deposit === 'string' && finite(item.level, item.invested) && item.level >= 0;
     const enemy = item => structure(item) && typeof item.type === 'string' && finite(item.speed, item.armor, item.slow, item.attackPhase);
     const conductor = value?.conductor;
     const statuses = ['build', 'paused', 'wave', 'choice', 'bossReady', 'boss', 'endless', 'defeated'];
     const ids = value && Array.isArray(value.towers) && Array.isArray(value.mines) ? value.towers.concat(value.mines).map(item => item.id) : [];
-    return !!(value && value.version === 2 && finite(value.seed, value.resonance, value.lifetimeResonance, value.elapsed, value.beatPhase, value.beatIndex, value.wave, value.spawned, value.spawnClock, value.endless, value.nextId)
+    const touch = value?.touch;
+    return !!(value && value.version === 3 && finite(value.seed, value.resonance, value.lifetimeResonance, value.elapsed, value.tempo, value.tempoLevel, value.beatPhase, value.beatIndex, value.halfBeatPhase, value.halfBeatIndex, value.wave, value.spawned, value.spawnClock, value.endless, value.nextId)
       && statuses.includes(value.status) && (value.resumeStatus == null || ['wave', 'boss'].includes(value.resumeStatus))
       && conductor && finite(conductor.hp, conductor.maxHp, conductor.power, conductor.maxPower, conductor.chorus, conductor.voiceCooldown) && conductor.maxHp > 0 && conductor.maxPower > 0
+      && touch && finite(touch.level, touch.lastBonusBeat, touch.total) && touch.level >= 1
       && Array.isArray(value.toSpawn) && value.toSpawn.every(type => ['block', 'runner', 'armored'].includes(type))
       && Array.isArray(value.towers) && value.towers.every(tower)
       && Array.isArray(value.mines) && value.mines.every(mine)
@@ -527,6 +550,32 @@ dialog p { color: #93a2b5; font-size: 13px; }
     const state = clone(input);
     state.tempo = clamp(tempo, 60, 132);
     return state;
+  }
+
+  function tempoCost(state) {
+    return TEMPO_COSTS[state.tempoLevel] ?? Infinity;
+  }
+
+  function raiseTempo(input) {
+    const state = clone(input);
+    const cost = tempoCost(state);
+    if (!Number.isFinite(cost)) return { state, ok: false, message: 'The orchestra is at the study’s tempo ceiling.', events: [] };
+    if (state.resonance < cost) return { state, ok: false, message: 'Not enough Resonance to raise the tempo.', events: [] };
+    state.resonance -= cost; state.tempoLevel += 1; state.tempo = 96 + state.tempoLevel * 4;
+    return { state, ok: true, message: 'The whole orchestra rises to ' + state.tempo + ' BPM.', events: [{ type: 'tempoRaised', tempo: state.tempo }] };
+  }
+
+  function touchCost(state) {
+    return TOUCH_COSTS[state.touch.level - 1] ?? Infinity;
+  }
+
+  function deepenTouch(input) {
+    const state = clone(input);
+    const cost = touchCost(state);
+    if (!Number.isFinite(cost)) return { state, ok: false, message: 'Your touch is fully developed in this study.', events: [] };
+    if (state.resonance < cost) return { state, ok: false, message: 'Not enough Resonance to deepen your touch.', events: [] };
+    state.resonance -= cost; state.touch.level += 1;
+    return { state, ok: true, message: 'Each touch now gathers ' + state.touch.level + ' Resonance.', events: [{ type: 'touchDeepened', level: state.touch.level }] };
   }
 
   function mineRate(state, includeChorus = true) {
@@ -563,7 +612,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
     if (state.resonance < cost) return { state, ok: false, message: 'Not enough Resonance.', events: [] };
     const def = towerDefinition(type);
     state.resonance -= cost;
-    state.towers.push({ id: 'tower-' + state.nextId++, type, x: clamp(x, 24, W - 24), y: clamp(y, 54, H - 28), hp: def.hp, maxHp: def.hp, tier: 1, electric: false, accents: 0, invested: cost });
+    state.towers.push({ id: 'tower-' + state.nextId++, type, x: clamp(x, 24, W - 24), y: clamp(y, 54, H - 28), hp: def.hp, maxHp: def.hp, tier: 1, rhythm: 0, octaves: 0, accents: 0, invested: cost });
     return { state, ok: true, message: def.name + ' joined the orchestra.', events: [{ type: 'built', voice: type }] };
   }
 
@@ -589,20 +638,51 @@ dialog p { color: #93a2b5; font-size: 13px; }
     return { state, ok: true, message: 'The mine now answers every bar with a second pulse.', events: [{ type: 'mineUpgrade', x: mine.x, y: mine.y }] };
   }
 
+  function rhythmMaximum(tower) {
+    return tower.type === 'drum' ? 1 : 2;
+  }
+
+  function rhythmPeriod(tower) {
+    const base = towerDefinition(tower.type).every * 2;
+    const reduction = tower.type === 'bell' ? tower.rhythm * 2 : tower.rhythm;
+    return Math.max(1, base - reduction);
+  }
+
+  function rhythmLabel(tower) {
+    const beats = rhythmPeriod(tower) / 2;
+    if (beats === 0.5) return 'every half-beat';
+    if (beats === 1) return 'every beat';
+    if (beats === 1.5) return 'every 1½ beats';
+    if (Number.isInteger(beats)) return 'every ' + beats + ' beats';
+    return 'every ' + beats + ' beats';
+  }
+
+  function towerUpgradeCost(tower, kind) {
+    if (!tower) return Infinity;
+    if (kind === 'mastery') return [45, 90][tower.tier - 1] ?? Infinity;
+    if (kind === 'rhythm') return tower.rhythm < rhythmMaximum(tower) ? [55, 110][tower.rhythm] : Infinity;
+    if (kind === 'octave') return [75, 150][tower.octaves] ?? Infinity;
+    return Infinity;
+  }
+
   function upgradeTower(input, id, kind) {
     const state = clone(input);
     const tower = structureById(state, id);
     if (!tower || !towerDefinition(tower.type)) return { state, ok: false, message: 'Select an instrument tower.', events: [] };
     if (tower.hp <= 0) return { state, ok: false, message: 'Rebuild this instrument first.', events: [] };
-    let cost = Infinity;
-    if (kind === 'section') cost = tower.tier === 1 ? 45 : tower.tier === 2 ? 90 : Infinity;
-    if (kind === 'electric') cost = tower.tier >= 2 && !tower.electric ? 120 : Infinity;
-    if (!Number.isFinite(cost)) return { state, ok: false, message: kind === 'electric' ? 'Grow this instrument before electrifying it.' : 'This section is already full.', events: [] };
+    const cost = towerUpgradeCost(tower, kind);
+    if (!Number.isFinite(cost)) return { state, ok: false, message: 'That musical development is complete in this study.', events: [] };
     if (state.resonance < cost) return { state, ok: false, message: 'Not enough Resonance.', events: [] };
     state.resonance -= cost; tower.invested += cost;
-    if (kind === 'section') { tower.tier += 1; tower.maxHp += 8; tower.hp += 8; }
-    else tower.electric = true;
-    return { state, ok: true, message: towerDefinition(tower.type).name + (kind === 'electric' ? ' became electric.' : tower.tier === 2 ? ' became a pair.' : ' became a section.'), events: [{ type: 'towerUpgrade', tower: clone(tower) }] };
+    if (kind === 'mastery') { tower.tier += 1; tower.maxHp += 8; tower.hp += 8; }
+    else if (kind === 'rhythm') tower.rhythm += 1;
+    else tower.octaves += 1;
+    const message = kind === 'mastery'
+      ? towerDefinition(tower.type).name + ' deepened its technique.'
+      : kind === 'rhythm'
+        ? towerDefinition(tower.type).name + ' now enters ' + rhythmLabel(tower) + '.'
+        : towerDefinition(tower.type).name + ' opened another octave.';
+    return { state, ok: true, message, events: [{ type: 'towerUpgrade', kind, tower: clone(tower) }] };
   }
 
   function repair(input, id) {
@@ -684,7 +764,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
     const candidates = state.enemies.filter(e => e.hp > 0 && distance(e, tower) <= def.range).sort((a, b) => distance(a, CENTER) - distance(b, CENTER));
     if (state.boss && state.boss.hp > 0 && !state.boss.shielded && distance(state.boss, tower) <= def.range + 35) candidates.push(state.boss);
     if (!candidates.length) return;
-    let damage = def.damage * (1 + (tower.tier - 1) * 0.35) * (tower.electric ? 1.25 : 1) * (state.conductor.chorus > 0 ? 1.25 : 1);
+    let damage = def.damage * (1 + (tower.tier - 1) * 0.35) * (1 + tower.octaves * 0.18) * (state.conductor.chorus > 0 ? 1.25 : 1);
     if (tower.accents > 0) { damage *= 1.5; tower.accents -= 1; }
     if (tower.type === 'drum') {
       const target = candidates[0];
@@ -696,12 +776,11 @@ dialog p { color: #93a2b5; font-size: 13px; }
     } else {
       const count = tower.tier;
       for (const enemy of candidates.slice(0, count)) damageEnemy(enemy, damage);
-      if (tower.electric && candidates[count]) damageEnemy(candidates[count], damage * 0.7);
     }
     events.push({ type: 'towerAttack', tower: clone(tower), target: clone(candidates[0]), damage });
   }
 
-  function onBeat(state, events, combat) {
+  function onBeat(state, events) {
     state.beatIndex += 1;
     if (state.beatIndex % 4 === 0) {
       let payout = 0;
@@ -712,10 +791,13 @@ dialog p { color: #93a2b5; font-size: 13px; }
       }
       state.resonance += payout; state.lifetimeResonance += payout;
     }
+  }
+
+  function onHalfBeat(state, events, combat) {
+    state.halfBeatIndex += 1;
     if (!combat) return;
     for (const tower of state.towers) {
-      const def = towerDefinition(tower.type);
-      if (def && state.beatIndex % def.every === 0) towerAttack(state, tower, events);
+      if (towerDefinition(tower.type) && state.halfBeatIndex % rhythmPeriod(tower) === 0) towerAttack(state, tower, events);
     }
   }
 
@@ -805,8 +887,10 @@ dialog p { color: #93a2b5; font-size: 13px; }
     if (state.ward) { state.ward.until -= seconds; if (state.ward.until <= 0) state.ward = null; }
     if (state.echo && combat) { state.echo.delay -= seconds; if (state.echo.delay <= 0) { applyGust(state, state.echo.start, state.echo.end, 0.5, events); state.echo = null; } }
     state.beatPhase += seconds;
+    state.halfBeatPhase += seconds;
     const beat = beatDuration(state);
-    while (state.beatPhase >= beat) { state.beatPhase -= beat; onBeat(state, events, combat); }
+    while (state.beatPhase >= beat) { state.beatPhase -= beat; onBeat(state, events); }
+    while (state.halfBeatPhase >= beat / 2) { state.halfBeatPhase -= beat / 2; onHalfBeat(state, events, combat); }
     if (!combat) return { state, events };
     if (state.status === 'wave') {
       state.spawnClock -= seconds;
@@ -827,16 +911,26 @@ dialog p { color: #93a2b5; font-size: 13px; }
 
   function tapPower(input, point) {
     const state = clone(input); const events = [];
-    if (!spendPower(state, 6)) return { state, ok: false, message: 'The conductor needs a breath.', events };
+    const beat = beatDuration(state);
+    const beatError = Math.min(state.beatPhase, beat - state.beatPhase);
+    const timedBeat = state.beatIndex + (state.beatPhase > beat / 2 ? 1 : 0);
+    const onBeat = beatError <= beat * 0.16 && state.touch.lastBonusBeat !== timedBeat;
+    const base = state.touch.level;
+    const bonus = onBeat ? 1 + Math.floor(state.touch.level / 2) : 0;
+    const amount = base + bonus;
+    state.resonance += amount; state.lifetimeResonance += amount; state.touch.total += amount;
+    if (onBeat) state.touch.lastBonusBeat = timedBeat;
+    events.push({ type: 'tapHarvest', point, amount, onBeat });
     const targets = state.towers.concat(state.mines.filter(m => m.level > 0)).filter(s => s.hp > 0).sort((a, b) => distance(a, point) - distance(b, point));
-    const target = targets[0];
-    if (target) {
+    const target = targets[0] && distance(targets[0], point) <= 36 ? targets[0] : null;
+    if (target && spendPower(state, 6)) {
       if (String(target.id).startsWith('mine-')) target.accent = true;
       else target.accents = 2;
       events.push({ type: 'accent', target: clone(target), point });
-      return { state, ok: true, message: String(target.id).startsWith('mine-') ? 'The next mine pulse is brighter.' : towerDefinition(target.type).name + ' carries your accent.', events };
+      return { state, ok: true, message: (onBeat ? 'On beat · ' : '') + '+' + amount + ' Resonance, and ' + (String(target.id).startsWith('mine-') ? 'the next mine pulse brightens.' : towerDefinition(target.type).name + ' carries your accent.'), events };
     }
-    return { state, ok: true, message: 'The conductor answers the empty field.', events: [{ type: 'accent', point }] };
+    const supportNote = target ? ' The conductor needs more power to accent it.' : '';
+    return { state, ok: true, message: (onBeat ? 'On beat · ' : '') + '+' + amount + ' Resonance.' + supportNote, events };
   }
 
   function segmentDistance(point, a, b) {
@@ -907,7 +1001,8 @@ dialog p { color: #93a2b5; font-size: 13px; }
 
   root.ResonanceDefense = {
     W, H, BEAT, CENTER, DEPOSITS, TOWERS, WAVES, POWER_CHOICES,
-    initial, validState, beatDuration, setTempo, mineRate, buildCost, mineCost, placementReason, placeTower, buildMine, upgradeMine, upgradeTower, repair,
+    initial, validState, beatDuration, setTempo, tempoCost, raiseTempo, touchCost, deepenTouch, mineRate, buildCost, mineCost, placementReason, placeTower, buildMine, upgradeMine,
+    rhythmMaximum, rhythmPeriod, rhythmLabel, towerUpgradeCost, upgradeTower, repair,
     startWave, beginBoss, pause, settleAway, advance, tapPower, swipePower, holdPower, sing, choosePower, retry, selectAt
   };
 }(typeof window !== 'undefined' ? window : globalThis));
@@ -921,7 +1016,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
     dorian: [0, 2, 3, 5, 7, 9, 10],
     lydian: [0, 2, 4, 6, 7, 9, 11]
   };
-  const VOICES = ["bloom", "string", "electric", "bell", "pulse", "pad", "conductor"];
+  const VOICES = ["bloom", "string", "bell", "pulse", "pad", "conductor"];
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0));
 
   class ResonanceAudio {
@@ -930,7 +1025,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
       this.config = {
         bpm: 78, root: 48, mode: "pentatonic", density: 0.48,
         volume: 0.72, muted: false, playing: false,
-        levels: { bloom: 0.8, string: 0.68, electric: 0, bell: 0.5, pulse: 0.34, pad: 0.42, conductor: 1 }
+        levels: { bloom: 0.8, string: 0.68, bell: 0.5, pulse: 0.34, pad: 0.42, conductor: 1 }
       };
       this.ctx = null;
       this.master = null;
@@ -1067,7 +1162,6 @@ dialog p { color: #93a2b5; font-size: 13px; }
       if ([2, 6, 10, 14].includes(barStep)) this._auto("string", [4, 2, 5, 1][(barStep - 2) / 4] + (bar % 2 ? 5 : 0), 0.22 + d * 0.17, 0.55, time);
       if (this.config.levels.string >= 2 && [0, 4, 8, 12].includes(barStep)) this._auto("string", [0, 3, 1, 4][barStep / 4] - 5, 0.16 + d * 0.12, 0.82, time);
       if (this.config.levels.string >= 3 && [3, 7, 11, 15].includes(barStep)) this._auto("string", [7, 9, 6, 8][(barStep - 3) / 4], 0.13 + d * 0.1, 0.4, time);
-      if (this.config.levels.electric > 0 && [1, 5, 9, 13].includes(barStep)) this._auto("electric", [7, 4, 9, 6][(barStep - 1) / 4], 0.17 + d * 0.12, 0.7, time);
       if ((barStep === 5 || barStep === 13) && (d > 0.3 || this.config.levels.bell > 1)) this._auto("bell", [7, 9, 11, 6][bar % 4], 0.2 + d * 0.14, 1.45, time);
       if (this.config.levels.bell >= 2 && barStep === 15) this._auto("bell", [12, 10, 14, 11][bar % 4], 0.16 + d * 0.1, 1.1, time);
       if (barStep === 0 && bar % 2 === 0) this._auto("pad", [0, 3, 4, 1][(bar / 2) % 4], 0.16 + d * 0.12, 5.2, time);
@@ -1090,9 +1184,10 @@ dialog p { color: #93a2b5; font-size: 13px; }
       return level > 1 ? Math.log2(level) / Math.log2(25) : 0;
     }
 
-    play(voice, degree, velocity = 0.6, duration = 0.7) {
+    play(voice, degree, velocity = 0.6, duration = 0.7, octave = 0) {
       if (!this.ctx || this.destroyed || !VOICES.includes(voice)) return false;
-      return this._sound(voice, degree, velocity, duration, this.ctx.currentTime + 0.005, false);
+      const shiftedDegree = degree + MODES[this.config.mode].length * Math.max(0, Math.round(octave));
+      return this._sound(voice, shiftedDegree, velocity, duration, this.ctx.currentTime + 0.005, false);
     }
 
     _frequency(degree) {
@@ -1129,15 +1224,6 @@ dialog p { color: #93a2b5; font-size: 13px; }
       if (voice === "bloom") {
         out.gain.setValueAtTime(0.0001, time); out.gain.exponentialRampToValueAtTime(velocity * 0.34, time + 0.12); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
         osc("sine", f, 1); osc("triangle", f * 2, 0.13 + variety * 0.025, -5 - variety * 3);
-      } else if (voice === "electric") {
-        out.gain.setValueAtTime(0.0001, time); out.gain.exponentialRampToValueAtTime(velocity * 0.26, time + 0.018); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-        const filter = c.createBiquadFilter(); filter.type = "lowpass"; filter.Q.value = 5; filter.frequency.setValueAtTime(Math.min(9000, f * 20), time); filter.frequency.exponentialRampToValueAtTime(Math.max(650, f * 3), time + duration);
-        const first = c.createOscillator(), second = c.createOscillator();
-        first.type = "sawtooth"; first.frequency.value = f; first.detune.value = -9;
-        second.type = "square"; second.frequency.value = f; second.detune.value = 9;
-        const secondGain = c.createGain(); secondGain.gain.value = 0.16;
-        first.connect(filter); second.connect(secondGain).connect(filter); filter.connect(out);
-        first.start(time); second.start(time); first.stop(stopAt); second.stop(stopAt); nodes.push(first, second);
       } else if (voice === "string") {
         out.gain.setValueAtTime(Math.max(0.0001, velocity * 0.33), time); out.gain.exponentialRampToValueAtTime(0.0001, time + duration);
         const filter = c.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.setValueAtTime(Math.min(7600, f * (12 + variety * 3)), time); filter.frequency.exponentialRampToValueAtTime(Math.max(500, f * 2), time + duration);
@@ -1413,14 +1499,16 @@ dialog p { color: #93a2b5; font-size: 13px; }
         if (selected) { c.strokeStyle = '#ffffffaa'; c.lineWidth = 1; c.beginPath(); c.arc(0, 0, 24, 0, Math.PI * 2); c.stroke(); c.strokeStyle = def.color + '26'; c.beginPath(); c.arc(0, 0, def.range, 0, Math.PI * 2); c.stroke(); }
         c.strokeStyle = def.color; c.fillStyle = def.color + '18'; c.lineWidth = 1.5;
         if (structure.type === 'violin') {
-          const lines = Math.min(3, structure.tier);
-          for (let i = 0; i < lines; i++) { const ox = (i - (lines - 1) / 2) * 6; c.beginPath(); c.ellipse(ox, 0, 7, 18, -0.2, 0, Math.PI * 2); c.fill(); c.stroke(); c.beginPath(); c.moveTo(ox - 12, -13); c.lineTo(ox + 12, 13); c.stroke(); }
+          c.beginPath(); c.ellipse(0, 0, 7, 18, -0.2, 0, Math.PI * 2); c.fill(); c.stroke(); c.beginPath(); c.moveTo(-12, -13); c.lineTo(12, 13); c.stroke();
         } else if (structure.type === 'drum') {
           c.beginPath(); c.arc(0, 0, 15 + structure.tier * 2, 0, Math.PI * 2); c.fill(); c.stroke(); c.beginPath(); c.arc(0, 0, 7, 0, Math.PI * 2); c.stroke();
         } else {
-          for (let i = 0; i < structure.tier; i++) { const ox = (i - (structure.tier - 1) / 2) * 7; c.beginPath(); c.moveTo(ox, -18); c.lineTo(ox + 12, 5); c.quadraticCurveTo(ox, 17, ox - 12, 5); c.closePath(); c.fill(); c.stroke(); }
+          c.beginPath(); c.moveTo(0, -18); c.lineTo(12, 5); c.quadraticCurveTo(0, 17, -12, 5); c.closePath(); c.fill(); c.stroke();
         }
-        if (structure.electric) { c.strokeStyle = '#9be7ff'; c.beginPath(); c.arc(0, 0, 22 + Math.sin(this.time * 5) * 2, 0, Math.PI * 2); c.stroke(); }
+        c.fillStyle = '#ffffffaa';
+        for (let i = 0; i < structure.tier; i++) { const a = -Math.PI * 0.7 + i * 0.45; c.beginPath(); c.arc(Math.cos(a) * 24, Math.sin(a) * 24, 1.6, 0, Math.PI * 2); c.fill(); }
+        if (structure.rhythm > 0) { c.strokeStyle = '#f4ce9eaa'; c.setLineDash([2, 4 - Math.min(2, structure.rhythm)]); c.beginPath(); c.arc(0, 0, 28, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); }
+        if (structure.octaves > 0) { c.strokeStyle = '#a6bfee88'; for (let i = 0; i < structure.octaves; i++) { c.beginPath(); c.arc(0, 0, 32 + i * 4 + Math.sin(this.time * 3 + i) * 1.2, -0.8, 0.8); c.stroke(); } }
         if (structure.accents > 0) { c.strokeStyle = '#ffffffcc'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, 27 + Math.sin(this.time * 7) * 2, 0, Math.PI * 2); c.stroke(); }
         c.restore(); this.drawHealth(c, structure);
       }
@@ -1479,6 +1567,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
         if (effect.type === 'towerAttack') { c.beginPath(); c.moveTo(effect.tower.x, effect.tower.y); c.lineTo(effect.target.x, effect.target.y); c.stroke(); }
         else if (effect.type === 'gust') { c.lineWidth = 5 * effect.strength; c.beginPath(); c.moveTo(effect.start.x, effect.start.y); c.lineTo(effect.end.x, effect.end.y); c.stroke(); }
         else if (effect.type === 'minePayout') { c.beginPath(); c.arc(effect.mine.x, effect.mine.y, 8 + progress * 32, 0, Math.PI * 2); c.stroke(); c.beginPath(); c.moveTo(effect.mine.x, effect.mine.y); c.lineTo(D.CENTER.x, D.CENTER.y); c.stroke(); }
+        else if (effect.type === 'tapHarvest') { c.beginPath(); c.arc(effect.point.x, effect.point.y, 5 + progress * (effect.onBeat ? 48 : 30), 0, Math.PI * 2); c.stroke(); c.font = '11px -apple-system, sans-serif'; c.textAlign = 'center'; c.fillText('+' + effect.amount + (effect.onBeat ? ' · beat' : ''), effect.point.x, effect.point.y - 12 - progress * 18); }
         else if (effect.type === 'bossStrike') { c.strokeStyle = '#ec9d92'; c.lineWidth = 3; c.beginPath(); c.arc(D.CENTER.x, D.CENTER.y, 70 + progress * 180, effect.angle - 0.7, effect.angle + 0.7); c.stroke(); }
         else { const p = effect.point || effect.target || D.CENTER; c.beginPath(); c.arc(p.x, p.y, 5 + progress * (effect.quiet ? 22 : 46), 0, Math.PI * 2); c.stroke(); }
         c.globalAlpha = 1;
@@ -1504,7 +1593,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
   'use strict';
   const D = window.ResonanceDefense;
   const $ = id => document.getElementById(id);
-  const STORAGE_KEY = 'resonance-orchestra-study-v2';
+  const STORAGE_KEY = 'resonance-orchestra-study-v3';
   const WORLD_AUDIO = {
     awakening: { mode: 'pentatonic', root: 50 },
     current: { mode: 'dorian', root: 50 },
@@ -1518,7 +1607,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
   let starting = null;
   let muted = false;
   let reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let mode = 'build';
+  let mode = 'conduct';
   let pendingBuild = null;
   let selectedId = 'tower-1';
   let tempo = 96;
@@ -1583,8 +1672,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
     const violin = alive('violin');
     const drum = alive('drum');
     const bell = alive('bell');
-    const electric = state.towers.filter(tower => tower.hp > 0 && tower.electric);
-    return { bloom: 1, string: tier(violin), bell: tier(bell), pulse: tier(drum) || 0.45, electric: tier(electric), pad: 0.55 + Math.min(1.4, state.towers.length * 0.14), conductor: 1 };
+    return { bloom: 1, string: tier(violin), bell: tier(bell), pulse: tier(drum) || 0.45, pad: 0.55 + Math.min(1.4, state.towers.length * 0.14), conductor: 1 };
   }
 
   function syncAudio(syncTransport = false) {
@@ -1619,9 +1707,11 @@ dialog p { color: #93a2b5; font-size: 13px; }
   function eventSound(event) {
     if (!awake) return;
     if (event.type === 'towerAttack') {
-      const voice = event.tower.electric ? 'electric' : event.tower.type === 'violin' ? 'string' : event.tower.type === 'drum' ? 'pulse' : 'bell';
-      audio.play(voice, (state.beatIndex + event.tower.tier * 2) % 9, event.tower.electric ? 0.62 : 0.46, voice === 'bell' ? 1.1 : voice === 'electric' ? 0.72 : 0.38);
+      const voice = event.tower.type === 'violin' ? 'string' : event.tower.type === 'drum' ? 'pulse' : 'bell';
+      const degree = (state.halfBeatIndex + event.tower.tier * 2) % 9;
+      for (let octave = 0; octave <= event.tower.octaves; octave++) audio.play(voice, degree, 0.46 / (1 + octave * 0.34), voice === 'bell' ? 1.1 : 0.38, octave);
     } else if (event.type === 'minePayout') audio.play('bloom', event.mine.level > 1 ? 3 : 0, 0.32, 0.75);
+    else if (event.type === 'tapHarvest') audio.play('bloom', Math.round(event.point.x / D.W * 6), event.onBeat ? 0.5 : 0.28, event.onBeat ? 0.7 : 0.42);
     else if (event.type === 'accent') audio.play('conductor', 4, 0.42, 0.36);
     else if (event.type === 'gust') { audio.play('conductor', 7, 0.5, 0.55); audio.play('string', 9, 0.34, 0.42); }
     else if (event.type === 'sing') { [0, 2, 4].forEach((degree, index) => setTimeout(() => audio.play('conductor', degree, 0.62 - index * 0.08, 2.4), index * 150)); }
@@ -1635,7 +1725,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
 
   function processEvents(events) {
     for (const event of events) {
-      if (['towerAttack', 'minePayout', 'accent', 'gust', 'ward', 'bossStrike'].includes(event.type)) stage.effect(event);
+      if (['towerAttack', 'minePayout', 'tapHarvest', 'accent', 'gust', 'ward', 'bossStrike'].includes(event.type)) stage.effect(event);
       eventSound(event);
       if (event.type === 'waveStart') banner('Wave ' + event.wave + ' · the movement begins');
       else if (event.type === 'waveClear') toast('Wave ' + event.wave + ' resolved · +' + event.reward + ' Resonance');
@@ -1646,6 +1736,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
       else if (event.type === 'defeat') openDefeat();
     }
     if (events.some(event => ['built', 'towerUpgrade', 'repaired', 'structureDown'].includes(event.type))) syncAudio();
+    if (events.some(event => event.type === 'tempoRaised')) { tempo = state.tempo; syncAudio(true); }
   }
 
   function apply(result, announce = true) {
@@ -1709,8 +1800,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
   function selectionName(structure) {
     if (!structure) return '';
     if (String(structure.id).startsWith('mine-')) return structure.protected ? 'Heart mine' : structure.level > 1 ? 'Expanded outer mine' : 'Outer mine';
-    const prefix = structure.tier === 1 ? 'Solo ' : structure.tier === 2 ? 'Paired ' : 'Sectional ';
-    return prefix + D.TOWERS[structure.type].name.toLowerCase() + (structure.electric ? ' · electric' : '');
+    return D.TOWERS[structure.type].name;
   }
 
   function renderSelection() {
@@ -1721,19 +1811,26 @@ dialog p { color: #93a2b5; font-size: 13px; }
     const isMine = String(structure.id).startsWith('mine-');
     $('selection-emblem').textContent = isMine ? ICONS.mine : ICONS[structure.type];
     $('selection-name').textContent = selectionName(structure);
-    $('selection-role').textContent = isMine ? (structure.level * 4) + ' Resonance every four beats' : D.TOWERS[structure.type].name + ' · ' + (structure.type === 'violin' ? 'focus' : structure.type === 'drum' ? 'area' : 'chain');
+    $('selection-role').textContent = isMine
+      ? (structure.level * 4) + ' Resonance every four beats'
+      : (structure.type === 'violin' ? 'focus' : structure.type === 'drum' ? 'area' : 'chain') + ' · ' + D.rhythmLabel(structure) + ' · mastery ' + structure.tier + (structure.octaves ? ' · +' + structure.octaves + ' octave' + (structure.octaves > 1 ? 's' : '') : '');
     $('selection-health').textContent = structure.protected ? 'protected' : Math.ceil(structure.hp) + ' / ' + structure.maxHp;
-    $('grow-section').hidden = isMine;
-    $('go-electric').hidden = isMine;
+    $('train').hidden = isMine;
+    $('subdivide').hidden = isMine;
+    $('add-octave').hidden = isMine;
     if (isMine) {
       $('repair').innerHTML = structure.hp <= 0 ? 'Rebuild <span>✧ ' + Math.max(10, Math.ceil((structure.invested || 40) * 0.4)) + '</span>' : structure.level < 2 ? 'Expand mine <span>✧ 80</span>' : 'Repair <span>✧ 10</span>';
       $('repair').disabled = structure.protected && structure.level >= 2 || (structure.level >= 2 && structure.hp >= structure.maxHp);
     } else {
-      const sectionCost = structure.tier === 1 ? 45 : structure.tier === 2 ? 90 : Infinity;
-      $('grow-section').innerHTML = structure.tier === 1 ? 'Grow pair <span>✧ 45</span>' : structure.tier === 2 ? 'Grow section <span>✧ 90</span>' : 'Full section <span>—</span>';
-      $('grow-section').disabled = !Number.isFinite(sectionCost) || state.resonance < sectionCost || structure.hp <= 0;
-      $('go-electric').innerHTML = structure.electric ? 'Electric <span>active</span>' : 'Go electric <span>✧ 120</span>';
-      $('go-electric').disabled = structure.electric || structure.tier < 2 || state.resonance < 120 || structure.hp <= 0;
+      const masteryCost = D.towerUpgradeCost(structure, 'mastery');
+      const rhythmCost = D.towerUpgradeCost(structure, 'rhythm');
+      const octaveCost = D.towerUpgradeCost(structure, 'octave');
+      $('train').innerHTML = Number.isFinite(masteryCost) ? 'Train <span>✧ ' + masteryCost + '</span>' : 'Mastery <span>complete</span>';
+      $('train').disabled = !Number.isFinite(masteryCost) || state.resonance < masteryCost || structure.hp <= 0;
+      $('subdivide').innerHTML = Number.isFinite(rhythmCost) ? 'Subdivide <span>✧ ' + rhythmCost + '</span>' : 'Rhythm <span>densest</span>';
+      $('subdivide').disabled = !Number.isFinite(rhythmCost) || state.resonance < rhythmCost || structure.hp <= 0;
+      $('add-octave').innerHTML = Number.isFinite(octaveCost) ? 'Add octave <span>✧ ' + octaveCost + '</span>' : 'Register <span>open</span>';
+      $('add-octave').disabled = !Number.isFinite(octaveCost) || state.resonance < octaveCost || structure.hp <= 0;
       const repairCost = structure.hp <= 0 ? Math.max(10, Math.ceil((structure.invested || 40) * 0.4)) : 10;
       $('repair').innerHTML = structure.hp <= 0 ? 'Rebuild <span>✧ ' + repairCost + '</span>' : 'Repair <span>✧ 10</span>';
       $('repair').disabled = structure.hp >= structure.maxHp || state.resonance < repairCost;
@@ -1756,7 +1853,10 @@ dialog p { color: #93a2b5; font-size: 13px; }
     $('rate').textContent = fmt(D.mineRate(state));
     $('health').textContent = Math.ceil(state.conductor.hp);
     $('power').textContent = Math.floor(state.conductor.power);
+    $('tempo').value = String(state.tempo);
+    $('tempo-value').textContent = state.tempo + ' BPM';
     $('power-fill').style.width = state.conductor.power / state.conductor.maxPower * 100 + '%';
+    $('tap-value').textContent = '+' + state.touch.level;
     $('sing').disabled = state.conductor.power < 45 || state.conductor.voiceCooldown > 0 || mode !== 'conduct';
     $('sing').querySelector('small').textContent = state.conductor.voiceCooldown > 0 ? Math.ceil(state.conductor.voiceCooldown) + 's' : '45';
     const wave = waveText();
@@ -1775,9 +1875,17 @@ dialog p { color: #93a2b5; font-size: 13px; }
       button.classList.toggle('selected', pendingBuild === type);
     });
     $('build-mine').disabled = !Number.isFinite(D.mineCost(state)) || state.resonance < 60;
-    $('build-hint').textContent = pendingBuild ? 'Tap open space to place the ' + D.TOWERS[pendingBuild].name.toLowerCase() + '.' : mode === 'conduct' ? 'Conduct mode · your gestures support the orchestra.' : 'Choose an instrument, then place it in the arena.';
+    const touchCost = D.touchCost(state);
+    $('deepen-touch').disabled = !Number.isFinite(touchCost) || state.resonance < touchCost;
+    $('cost-touch').textContent = Number.isFinite(touchCost) ? fmt(touchCost, 0) : 'full';
+    $('touch-detail').textContent = Number.isFinite(touchCost) ? 'Every tap gathers ' + (state.touch.level + 1) : 'Touch development complete';
+    const tempoCost = D.tempoCost(state);
+    $('raise-tempo').disabled = !Number.isFinite(tempoCost) || state.resonance < tempoCost;
+    $('cost-tempo').textContent = Number.isFinite(tempoCost) ? fmt(tempoCost, 0) : 'full';
+    $('tempo-detail').textContent = Number.isFinite(tempoCost) ? 'Orchestra-wide · ' + (96 + (state.tempoLevel + 1) * 4) + ' BPM' : state.tempo + ' BPM · ceiling';
+    $('build-hint').textContent = pendingBuild ? 'Tap open space to place the ' + D.TOWERS[pendingBuild].name.toLowerCase() + '.' : mode === 'conduct' ? 'Conduct mode · tap to gather; aim near a structure to accent it.' : 'Choose an instrument, then place it in the arena.';
     renderSelection();
-    $('status-line').textContent = state.powerChoice ? POWER_NAMES[state.powerChoice] + ' shapes this performance.' : state.status === 'build' ? 'The mines keep growing while danger waits.' : 'The orchestra plays; you lend it support.';
+    $('status-line').textContent = state.powerChoice ? POWER_NAMES[state.powerChoice] + ' shapes this performance.' : mode === 'conduct' ? 'Every tap gathers. Aim at the orchestra to add an accent.' : 'The mines keep growing while danger waits.';
     stage.configure(state, { mode, pendingBuild, selectedId, reduced });
     if (state.status === 'choice' && !$('choice-dialog').open) $('choice-dialog').showModal();
     if (state.status !== 'choice' && $('choice-dialog').open) $('choice-dialog').close();
@@ -1797,7 +1905,7 @@ dialog p { color: #93a2b5; font-size: 13px; }
   function reset() {
     clearSave();
     state = D.initial();
-    selectedId = 'tower-1'; pendingBuild = null; mode = 'build'; world = 'awakening'; tempo = 96;
+    selectedId = 'tower-1'; pendingBuild = null; mode = 'conduct'; world = 'awakening'; tempo = 96;
     stage.clear();
     document.querySelectorAll('[data-build]').forEach(button => button.classList.remove('selected'));
     selectTab('build', false);
@@ -1810,13 +1918,14 @@ dialog p { color: #93a2b5; font-size: 13px; }
       state.resonance = which === 'boss' ? 520 : 280;
       state.lifetimeResonance = state.resonance;
       state.mines[1].level = 2; state.mines[1].hp = 40; state.mines[1].invested = 140;
-      state.towers[0].tier = which === 'boss' ? 3 : 2; state.towers[0].electric = which === 'boss'; state.towers[0].invested = which === 'boss' ? 255 : 45;
-      state.towers.push({ id: 'tower-2', type: 'drum', x: 118, y: 248, hp: 53, maxHp: 53, tier: 2, electric: false, accents: 0, invested: 140 });
-      state.towers.push({ id: 'tower-3', type: 'bell', x: 180, y: 164, hp: 38, maxHp: 38, tier: 2, electric: false, accents: 0, invested: 190 });
+      state.touch.level = which === 'boss' ? 4 : 2; state.tempoLevel = which === 'boss' ? 4 : 2; state.tempo = 96 + state.tempoLevel * 4;
+      state.towers[0].tier = which === 'boss' ? 3 : 2; state.towers[0].rhythm = 2; state.towers[0].octaves = which === 'boss' ? 2 : 1; state.towers[0].invested = which === 'boss' ? 430 : 175;
+      state.towers.push({ id: 'tower-2', type: 'drum', x: 118, y: 248, hp: 53, maxHp: 53, tier: 2, rhythm: 1, octaves: 1, accents: 0, invested: 270 });
+      state.towers.push({ id: 'tower-3', type: 'bell', x: 180, y: 164, hp: 38, maxHp: 38, tier: 2, rhythm: 1, octaves: 1, accents: 0, invested: 320 });
       state.nextId = which === 'boss' ? 5 : 4; state.wave = which === 'boss' ? 6 : 3; state.status = which === 'boss' ? 'bossReady' : 'build'; state.powerChoice = which === 'boss' ? 'echo' : null;
-      if (which === 'boss') state.towers.push({ id: 'tower-4', type: 'violin', x: 260, y: 180, hp: 38, maxHp: 38, tier: 2, electric: true, accents: 0, invested: 205 });
+      if (which === 'boss') state.towers.push({ id: 'tower-4', type: 'violin', x: 260, y: 180, hp: 38, maxHp: 38, tier: 2, rhythm: 1, octaves: 2, accents: 0, invested: 420 });
     }
-    selectedId = 'tower-1'; pendingBuild = null; mode = 'build'; stage.clear(); syncAudio(); save(); render(); toast(which === 'first' ? 'First defense.' : which === 'growing' ? 'A growing orchestra.' : 'The crisis is ready when you are.');
+    selectedId = 'tower-1'; pendingBuild = null; mode = 'conduct'; tempo = state.tempo; stage.clear(); syncAudio(true); save(); render(); toast(which === 'first' ? 'First defense.' : which === 'growing' ? 'A growing orchestra.' : 'The crisis is ready when you are.');
   }
 
   $('awaken').addEventListener('click', awaken);
@@ -1825,12 +1934,17 @@ dialog p { color: #93a2b5; font-size: 13px; }
   $('sing').addEventListener('click', async () => { await awaken(); apply(D.sing(state)); });
   $('wave-action').addEventListener('click', startOrResume);
   $('resume').addEventListener('click', startOrResume);
-  $('conduct-mode').addEventListener('click', () => { mode = 'conduct'; if (state.status === 'paused') apply(D.startWave(state), false); else render(); selectTab('build', false); });
+  const returnToConduct = () => { mode = 'conduct'; if (state.status === 'paused') apply(D.startWave(state), false); else render(); selectTab('build', false); };
+  $('conduct-mode').addEventListener('click', returnToConduct);
+  $('conduct-mode-build').addEventListener('click', returnToConduct);
   document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => selectTab(button.dataset.tab)));
   document.querySelectorAll('[data-build]').forEach(button => button.addEventListener('click', () => { pauseForWorkshop(); pendingBuild = button.dataset.build; document.querySelectorAll('[data-build]').forEach(other => other.classList.toggle('selected', other === button)); render(); }));
   $('build-mine').addEventListener('click', () => { const result = D.buildMine(state); if (result.ok) selectedId = 'mine-outer'; apply(result); });
-  $('grow-section').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'section')); });
-  $('go-electric').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'electric')); });
+  $('deepen-touch').addEventListener('click', () => apply(D.deepenTouch(state)));
+  $('raise-tempo').addEventListener('click', () => apply(D.raiseTempo(state)));
+  $('train').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'mastery')); });
+  $('subdivide').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'rhythm')); });
+  $('add-octave').addEventListener('click', () => { const structure = selectedStructure(); if (structure) apply(D.upgradeTower(state, structure.id, 'octave')); });
   $('repair').addEventListener('click', () => { const structure = selectedStructure(); if (!structure) return; apply(String(structure.id).startsWith('mine-') && structure.hp > 0 && structure.level < 2 ? D.upgradeMine(state, structure.id) : D.repair(state, structure.id)); });
   document.querySelectorAll('[data-choice]').forEach(button => button.addEventListener('click', () => apply(D.choosePower(state, button.dataset.choice))));
   $('retry').addEventListener('click', () => { $('defeat-dialog').close(); apply(D.retry(state)); });
