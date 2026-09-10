@@ -85,8 +85,13 @@
         else this.onGesture({ kind: 'tap', id: active.id, point: p });
         this.pointers.delete(event.pointerId);
       };
+      const cancel = event => {
+        const active = this.pointers.get(event.pointerId);
+        if (active?.holding) this.onGesture({ kind: 'holdend', id: active.id, point: active.point });
+        this.pointers.delete(event.pointerId);
+      };
       c.addEventListener('pointerup', end);
-      c.addEventListener('pointercancel', end);
+      c.addEventListener('pointercancel', cancel);
       c.addEventListener('lostpointercapture', event => {
         const active = this.pointers.get(event.pointerId);
         if (active?.holding) this.onGesture({ kind: 'holdend', id: active.id, point: active.point });
@@ -100,6 +105,10 @@
     releaseAll() {
       for (const active of this.pointers.values()) if (active.holding) this.onGesture({ kind: 'holdend', id: active.id, point: active.point });
       this.pointers.clear();
+    }
+
+    isPointerActive(id) {
+      return this.pointers.has(id);
     }
 
     effect(event) {

@@ -33,7 +33,7 @@
   const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   const towerDefinition = type => TOWERS[type] || null;
   const structureById = (state, id) => state.towers.find(t => t.id === id) || state.mines.find(m => m.id === id) || null;
-  const liveStructures = state => state.towers.concat(state.mines.filter(m => !m.protected)).filter(s => s.hp > 0);
+  const liveStructures = state => state.towers.concat(state.mines.filter(m => !m.protected && m.level > 0)).filter(s => s.hp > 0);
 
   function initial() {
     return {
@@ -42,6 +42,7 @@
       resonance: 20,
       lifetimeResonance: 20,
       elapsed: 0,
+      tempo: 96,
       beatPhase: 0,
       beatIndex: 0,
       status: 'build',
@@ -70,11 +71,42 @@
   }
 
   function validState(value) {
-    return !!(value && value.version === 2 && Number.isFinite(value.resonance) && value.conductor && Array.isArray(value.towers) && Array.isArray(value.mines) && Array.isArray(value.enemies));
+    const finite = (...values) => values.every(Number.isFinite);
+    const point = item => item && finite(item.x, item.y);
+    const structure = item => item && typeof item.id === 'string' && finite(item.x, item.y, item.hp, item.maxHp) && item.maxHp > 0;
+    const tower = item => structure(item) && !!towerDefinition(item.type) && finite(item.tier, item.accents, item.invested) && item.tier >= 1;
+    const mine = item => structure(item) && typeof item.deposit === 'string' && finite(item.level, item.invested) && item.level >= 0;
+    const enemy = item => structure(item) && typeof item.type === 'string' && finite(item.speed, item.armor, item.slow, item.attackPhase);
+    const conductor = value?.conductor;
+    const statuses = ['build', 'paused', 'wave', 'choice', 'bossReady', 'boss', 'endless', 'defeated'];
+    const ids = value && Array.isArray(value.towers) && Array.isArray(value.mines) ? value.towers.concat(value.mines).map(item => item.id) : [];
+    return !!(value && value.version === 2 && finite(value.seed, value.resonance, value.lifetimeResonance, value.elapsed, value.beatPhase, value.beatIndex, value.wave, value.spawned, value.spawnClock, value.endless, value.nextId)
+      && statuses.includes(value.status) && (value.resumeStatus == null || ['wave', 'boss'].includes(value.resumeStatus))
+      && conductor && finite(conductor.hp, conductor.maxHp, conductor.power, conductor.maxPower, conductor.chorus, conductor.voiceCooldown) && conductor.maxHp > 0 && conductor.maxPower > 0
+      && Array.isArray(value.toSpawn) && value.toSpawn.every(type => ['block', 'runner', 'armored'].includes(type))
+      && Array.isArray(value.towers) && value.towers.every(tower)
+      && Array.isArray(value.mines) && value.mines.every(mine)
+      && Array.isArray(value.enemies) && value.enemies.every(enemy)
+      && (value.boss == null || (structure(value.boss) && finite(value.boss.attackClock, value.boss.telegraph, value.boss.angle)))
+      && (value.ward == null || (point(value.ward) && finite(value.ward.radius, value.ward.until)))
+      && (value.echo == null || (point(value.echo.start) && point(value.echo.end) && Number.isFinite(value.echo.delay)))
+      && (value.powerChoice == null || !!POWER_CHOICES[value.powerChoice])
+      && ids.length === new Set(ids).size);
   }
 
-  function mineRate(state) {
-    return state.mines.reduce((sum, mine) => mine.hp > 0 && mine.level > 0 ? sum + mine.level * 4 / (BEAT * 4) : sum, 0) * (state.conductor.chorus > 0 ? 1.25 : 1);
+  function beatDuration(state) {
+    return 60 / clamp(state.tempo || 96, 60, 132);
+  }
+
+  function setTempo(input, tempo) {
+    const state = clone(input);
+    state.tempo = clamp(tempo, 60, 132);
+    return state;
+  }
+
+  function mineRate(state, includeChorus = true) {
+    const chorus = includeChorus && state.conductor.chorus > 0 ? 1.25 : 1;
+    return state.mines.reduce((sum, mine) => mine.hp > 0 && mine.level > 0 ? sum + mine.level * 4 / (beatDuration(state) * 4) : sum, 0) * chorus;
   }
 
   function buildCost(state, type) {
@@ -194,8 +226,10 @@
   function settleAway(input, seconds) {
     const state = clone(input);
     seconds = clamp(seconds, 0, 60 * 60 * 8);
-    const earned = mineRate(state) * seconds;
+    const earned = mineRate(state, false) * seconds;
     state.resonance += earned; state.lifetimeResonance += earned;
+    state.conductor.chorus = Math.max(0, state.conductor.chorus - seconds);
+    state.conductor.voiceCooldown = Math.max(0, state.conductor.voiceCooldown - seconds);
     return { state, earned, seconds, events: earned ? [{ type: 'away', earned }] : [] };
   }
 
@@ -229,7 +263,9 @@
     if (tower.accents > 0) { damage *= 1.5; tower.accents -= 1; }
     if (tower.type === 'drum') {
       const target = candidates[0];
-      for (const enemy of state.enemies) if (enemy.hp > 0 && distance(enemy, target) <= 32 + (tower.tier - 1) * 7) damageEnemy(enemy, damage);
+      const splash = state.enemies.slice();
+      if (state.boss && state.boss.hp > 0 && !state.boss.shielded) splash.push(state.boss);
+      for (const enemy of splash) if (enemy.hp > 0 && distance(enemy, target) <= 32 + (tower.tier - 1) * 7) damageEnemy(enemy, damage);
     } else if (tower.type === 'bell') {
       for (const enemy of candidates.slice(0, 2 + tower.tier)) damageEnemy(enemy, damage);
     } else {
@@ -292,6 +328,16 @@
   function updateBoss(state, dt, events) {
     const boss = state.boss;
     if (!boss || boss.hp <= 0) return;
+    const targets = liveStructures(state).sort((a, b) => distance(a, boss) - distance(b, boss));
+    const destination = targets[0] || CENTER;
+    const gap = distance(boss, destination);
+    if (gap > (targets.length ? 78 : 10)) {
+      const speed = boss.shielded ? 8 : 12;
+      boss.x += (destination.x - boss.x) / Math.max(1, gap) * speed * dt;
+      boss.y += (destination.y - boss.y) / Math.max(1, gap) * speed * dt;
+    } else if (!targets.length) {
+      state.conductor.hp = Math.max(0, state.conductor.hp - 18 * dt);
+    }
     if (!boss.shielded && !boss.shellBroken && boss.hp <= boss.maxHp / 2) { boss.shielded = true; events.push({ type: 'bossShield' }); }
     boss.attackClock -= dt;
     if (boss.attackClock <= 3 && boss.telegraph <= 0) { boss.telegraph = 3; boss.angle = nextRandom(state) * Math.PI * 2; events.push({ type: 'bossTelegraph', angle: boss.angle }); }
@@ -332,9 +378,10 @@
     state.conductor.chorus = Math.max(0, state.conductor.chorus - seconds);
     state.conductor.voiceCooldown = Math.max(0, state.conductor.voiceCooldown - seconds);
     if (state.ward) { state.ward.until -= seconds; if (state.ward.until <= 0) state.ward = null; }
-    if (state.echo) { state.echo.delay -= seconds; if (state.echo.delay <= 0) { applyGust(state, state.echo.start, state.echo.end, 0.5, events); state.echo = null; } }
+    if (state.echo && combat) { state.echo.delay -= seconds; if (state.echo.delay <= 0) { applyGust(state, state.echo.start, state.echo.end, 0.5, events); state.echo = null; } }
     state.beatPhase += seconds;
-    while (state.beatPhase >= BEAT) { state.beatPhase -= BEAT; onBeat(state, events, combat); }
+    const beat = beatDuration(state);
+    while (state.beatPhase >= beat) { state.beatPhase -= beat; onBeat(state, events, combat); }
     if (!combat) return { state, events };
     if (state.status === 'wave') {
       state.spawnClock -= seconds;
@@ -388,7 +435,7 @@
     const state = clone(input); const events = [];
     if (!spendPower(state, 35)) return { state, ok: false, message: 'The conductor needs 35 power for a gust.', events };
     applyGust(state, start, end, 1, events);
-    if (state.powerChoice === 'echo') state.echo = { start, end, delay: BEAT };
+    if (state.powerChoice === 'echo') state.echo = { start, end, delay: beatDuration(state) };
     return { state, ok: true, message: state.boss && state.boss.shellBroken ? 'The Hush opened.' : 'The orchestra leans into your gust.', events };
   }
 
@@ -419,9 +466,12 @@
   function retry(input) {
     const state = clone(input);
     if (state.status !== 'defeated') return { state, ok: false, message: 'The performance has not ended.', events: [] };
+    const failedStatus = state.resumeStatus;
     state.conductor.hp = state.conductor.maxHp; state.conductor.power = state.conductor.maxPower; state.enemies = []; state.boss = null; state.ward = null; state.echo = null;
     for (const structure of state.towers.concat(state.mines)) if (!structure.protected && structure.hp <= 0) structure.hp = Math.max(1, structure.maxHp * 0.4);
-    state.status = state.wave >= 6 ? 'bossReady' : 'build'; state.resumeStatus = null;
+    state.toSpawn = []; state.spawnClock = 0;
+    if (failedStatus === 'wave') state.wave = Math.max(0, state.wave - 1);
+    state.status = failedStatus === 'boss' ? 'bossReady' : 'build'; state.resumeStatus = null;
     return { state, ok: true, message: 'The base remains. The conductor raises the orchestra again.', events: [{ type: 'retry' }] };
   }
 
@@ -432,7 +482,7 @@
 
   root.ResonanceDefense = {
     W, H, BEAT, CENTER, DEPOSITS, TOWERS, WAVES, POWER_CHOICES,
-    initial, validState, mineRate, buildCost, mineCost, placementReason, placeTower, buildMine, upgradeMine, upgradeTower, repair,
+    initial, validState, beatDuration, setTempo, mineRate, buildCost, mineCost, placementReason, placeTower, buildMine, upgradeMine, upgradeTower, repair,
     startWave, beginBoss, pause, settleAway, advance, tapPower, swipePower, holdPower, sing, choosePower, retry, selectAt
   };
 }(typeof window !== 'undefined' ? window : globalThis));

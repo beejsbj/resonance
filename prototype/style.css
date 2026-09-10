@@ -160,8 +160,8 @@ dialog p { color: #93a2b5; font-size: 13px; }
   .hud { padding-inline: 9px; }
   .hud strong { font-size: 18px; }
   .build-grid { gap: 5px; }
-  .build-grid button { grid-template-columns: 27px 1fr; padding-inline: 7px; }
-  .build-grid button > strong { display: none; }
+  .build-grid button { grid-template-columns: 27px 1fr auto; padding-inline: 7px; }
+  .build-grid small { display: none; }
   .build-grid .emblem { width: 27px; height: 27px; }
   .power-key, .sing-button { padding-inline: 6px; }
   .selection-actions { grid-template-columns: 1fr; }

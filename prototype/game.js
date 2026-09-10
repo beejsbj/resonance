@@ -45,16 +45,17 @@
     try {
       const envelope = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (!envelope || !D.validState(envelope.state) || !Number.isFinite(envelope.savedAt)) return;
-      state = D.pause(envelope.state);
+      state = D.setTempo(D.pause(envelope.state), envelope.state.tempo || 96);
       const settled = D.settleAway(state, Math.max(0, (Date.now() - envelope.savedAt) / 1000));
       state = settled.state;
+      tempo = state.tempo;
       restoredAway = settled.earned;
       selectedId = state.towers.find(t => t.hp > 0)?.id || state.mines.find(m => m.level > 0)?.id || null;
     } catch {}
   }
 
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ savedAt: Date.now(), state })); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ savedAt: hiddenAt || Date.now(), state })); } catch {}
   }
 
   function clearSave() {
@@ -77,15 +78,18 @@
 
   function voiceLevels() {
     const alive = type => state.towers.filter(t => t.type === type && t.hp > 0);
-    const violin = alive('violin').reduce((sum, tower) => sum + tower.tier, 0);
-    const drum = alive('drum').reduce((sum, tower) => sum + tower.tier, 0);
-    const bell = alive('bell').reduce((sum, tower) => sum + tower.tier, 0);
-    return { bloom: 1, string: violin, bell, pulse: drum || 0.45, pad: 0.55 + Math.min(1.4, state.towers.length * 0.14), conductor: 1 };
+    const tier = towers => towers.reduce((highest, tower) => Math.max(highest, tower.tier), 0);
+    const violin = alive('violin');
+    const drum = alive('drum');
+    const bell = alive('bell');
+    const electric = state.towers.filter(tower => tower.hp > 0 && tower.electric);
+    return { bloom: 1, string: tier(violin), bell: tier(bell), pulse: tier(drum) || 0.45, electric: tier(electric), pad: 0.55 + Math.min(1.4, state.towers.length * 0.14), conductor: 1 };
   }
 
-  function syncAudio() {
+  function syncAudio(syncTransport = false) {
     const current = WORLD_AUDIO[world];
     audio.setConfig({ bpm: tempo, root: current.root, mode: current.mode, levels: voiceLevels(), density: 0.82, volume: 0.66, muted, playing: awake });
+    if (syncTransport && awake) audio.syncTransport(state.beatIndex, state.beatPhase, D.beatDuration(state));
   }
 
   async function awaken() {
@@ -99,7 +103,7 @@
         await audio.start();
         awake = true;
         $('start-prompt').hidden = true;
-        syncAudio();
+        syncAudio(true);
         if (restoredAway > 0) { toast('Your mines gathered +' + fmt(restoredAway) + ' Resonance while you were away.'); restoredAway = 0; }
         audio.play('string', 2, 0.5, 1.1);
         return true;
@@ -114,8 +118,8 @@
   function eventSound(event) {
     if (!awake) return;
     if (event.type === 'towerAttack') {
-      const voice = event.tower.type === 'violin' ? 'string' : event.tower.type === 'drum' ? 'pulse' : 'bell';
-      audio.play(voice, (state.beatIndex + event.tower.tier * 2) % 9, event.tower.electric ? 0.62 : 0.46, voice === 'bell' ? 1.1 : 0.38);
+      const voice = event.tower.electric ? 'electric' : event.tower.type === 'violin' ? 'string' : event.tower.type === 'drum' ? 'pulse' : 'bell';
+      audio.play(voice, (state.beatIndex + event.tower.tier * 2) % 9, event.tower.electric ? 0.62 : 0.46, voice === 'bell' ? 1.1 : voice === 'electric' ? 0.72 : 0.38);
     } else if (event.type === 'minePayout') audio.play('bloom', event.mine.level > 1 ? 3 : 0, 0.32, 0.75);
     else if (event.type === 'accent') audio.play('conductor', 4, 0.42, 0.36);
     else if (event.type === 'gust') { audio.play('conductor', 7, 0.5, 0.55); audio.play('string', 9, 0.34, 0.42); }
@@ -140,7 +144,7 @@
       else if (event.type === 'structureDown') toast('A structure fell silent. Rebuild it from Orchestra.');
       else if (event.type === 'defeat') openDefeat();
     }
-    syncAudio();
+    if (events.some(event => ['built', 'towerUpgrade', 'repaired', 'structureDown'].includes(event.type))) syncAudio();
   }
 
   function apply(result, announce = true) {
@@ -153,6 +157,7 @@
   }
 
   async function gesture(event) {
+    if (event.kind === 'holdend') { audio.release(event.id); return; }
     if (mode === 'build') {
       if (event.kind !== 'tap') return;
       if (pendingBuild) {
@@ -167,15 +172,16 @@
       return;
     }
     await awaken();
+    if (event.kind.startsWith('hold') && !stage.isPointerActive(event.id)) return;
     if (event.kind === 'tap') apply(D.tapPower(state, event.point), false);
     else if (event.kind === 'swipe') apply(D.swipePower(state, event.start, event.end), false);
     else if (event.kind === 'holdstart') audio.hold(event.id, 'conductor', 0);
     else if (event.kind === 'holdmove') audio.moveHold(event.id, Math.round((event.point.x / D.W) * 7), 0.55);
     else if (event.kind === 'holdtick') apply(D.holdPower(state, event.point, event.seconds), false);
-    else if (event.kind === 'holdend') audio.release(event.id);
   }
 
   function pauseForWorkshop() {
+    stage.releaseAll();
     if (['wave', 'boss'].includes(state.status)) {
       state = D.pause(state);
       banner('Danger waits while you build.');
@@ -306,7 +312,7 @@
       state.towers[0].tier = which === 'boss' ? 3 : 2; state.towers[0].electric = which === 'boss'; state.towers[0].invested = which === 'boss' ? 255 : 45;
       state.towers.push({ id: 'tower-2', type: 'drum', x: 118, y: 248, hp: 53, maxHp: 53, tier: 2, electric: false, accents: 0, invested: 140 });
       state.towers.push({ id: 'tower-3', type: 'bell', x: 180, y: 164, hp: 38, maxHp: 38, tier: 2, electric: false, accents: 0, invested: 190 });
-      state.nextId = 4; state.wave = which === 'boss' ? 6 : 3; state.status = which === 'boss' ? 'bossReady' : 'build'; state.powerChoice = which === 'boss' ? 'echo' : null;
+      state.nextId = which === 'boss' ? 5 : 4; state.wave = which === 'boss' ? 6 : 3; state.status = which === 'boss' ? 'bossReady' : 'build'; state.powerChoice = which === 'boss' ? 'echo' : null;
       if (which === 'boss') state.towers.push({ id: 'tower-4', type: 'violin', x: 260, y: 180, hp: 38, maxHp: 38, tier: 2, electric: true, accents: 0, invested: 205 });
     }
     selectedId = 'tower-1'; pendingBuild = null; mode = 'build'; stage.clear(); syncAudio(); save(); render(); toast(which === 'first' ? 'First defense.' : which === 'growing' ? 'A growing orchestra.' : 'The crisis is ready when you are.');
@@ -327,7 +333,7 @@
   $('repair').addEventListener('click', () => { const structure = selectedStructure(); if (!structure) return; apply(String(structure.id).startsWith('mine-') && structure.hp > 0 && structure.level < 2 ? D.upgradeMine(state, structure.id) : D.repair(state, structure.id)); });
   document.querySelectorAll('[data-choice]').forEach(button => button.addEventListener('click', () => apply(D.choosePower(state, button.dataset.choice))));
   $('retry').addEventListener('click', () => { $('defeat-dialog').close(); apply(D.retry(state)); });
-  $('tempo').addEventListener('input', event => { tempo = Number(event.target.value); $('tempo-value').textContent = tempo + ' BPM'; syncAudio(); });
+  $('tempo').addEventListener('input', event => { tempo = Number(event.target.value); state = D.setTempo(state, tempo); $('tempo-value').textContent = tempo + ' BPM'; syncAudio(true); save(); });
   $('world').addEventListener('change', event => { world = event.target.value; syncAudio(); toast('The orchestra entered a different modal colour.'); });
   $('grant').addEventListener('click', () => { state.resonance += 300; state.lifetimeResonance += 300; save(); render(); toast('+300 Resonance for tinkering.'); });
   $('away-two').addEventListener('click', () => apply({ ...D.settleAway(state, 120), ok: true, message: 'Two quiet minutes passed.' }));
@@ -341,7 +347,7 @@
     if (document.hidden) {
       stage.releaseAll(); state = D.pause(state); hiddenAt = Date.now(); save(); syncAudio();
     } else if (hiddenAt) {
-      const settled = D.settleAway(state, (Date.now() - hiddenAt) / 1000); state = settled.state; hiddenAt = 0; save(); render();
+      const settled = D.settleAway(state, (Date.now() - hiddenAt) / 1000); state = settled.state; hiddenAt = 0; save(); syncAudio(true); render();
       if (settled.earned > 0) toast('Your mines gathered +' + fmt(settled.earned) + ' while away. No battle time passed.');
     }
   });
@@ -356,13 +362,15 @@
   }
 
   load();
+  $('tempo').value = String(tempo);
+  $('tempo-value').textContent = tempo + ' BPM';
   $('motion').textContent = reduced ? 'Full motion' : 'Gentle motion';
   $('motion').setAttribute('aria-pressed', String(reduced));
   syncAudio(); render();
   if (restoredAway > 0) $('start-prompt').querySelector('p').textContent = 'Your mines gathered +' + fmt(restoredAway) + ' while you were away.';
   requestAnimationFrame(frame);
-  saveTimer = setInterval(save, 3000);
-  window.addEventListener('pagehide', () => { stage.releaseAll(); state = D.pause(state); save(); });
+  saveTimer = setInterval(() => { if (!document.hidden) save(); }, 3000);
+  window.addEventListener('pagehide', () => { stage.releaseAll(); state = D.pause(state); hiddenAt ||= Date.now(); save(); });
   window.addEventListener('beforeunload', () => { clearInterval(saveTimer); audio.destroy(); stage.destroy(); });
 
   window.ResonancePrototype = {
