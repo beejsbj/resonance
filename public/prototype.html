@@ -438,13 +438,26 @@ const COLORS={bloom:'#b0e8db',string:'#dfb3ee',bell:'#f4ce9e',pulse:'#e7aebf',pa
 const POS={bloom:[.29,.47],string:[.67,.43],bell:[.8,.71],pulse:[.22,.77],pad:[.51,.76]};
 class ResonanceStage{
  constructor(canvas,onGesture){this.canvas=canvas;this.ctx=canvas.getContext('2d');this.onGesture=onGesture;this.notes=[];this.sparkles=[];this.pointers=new Map();this.levels={bloom:0,string:0,bell:0,pulse:0,pad:0};this.energy={bloom:0,string:0,bell:0,pulse:0,pad:0};this.awake=false;this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;this.color='#b0e8db';this.time=0;this.lastFrame=0;this.width=1;this.height=1;this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(canvas.parentElement);this.resize();this.bind();this.draw=this.draw.bind(this);this.raf=requestAnimationFrame(this.draw);}
- resize(){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;const d=Math.min(devicePixelRatio||1,2);this.canvas.width=r.width*d;this.canvas.height=r.height*d;this.ctx.setTransform(d,0,0,d,0,0);for(const [id,p]of Object.entries(POS)){const el=document.querySelector(`[data-label="${id}"]`);if(el){el.style.left=(p[0]*100)+'%';el.style.top=(p[1]*100+12)+'%';}}}
+ resize(){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;const d=Math.min(devicePixelRatio||1,2);this.canvas.width=r.width*d;this.canvas.height=r.height*d;this.ctx.setTransform(d,0,0,d,0,0);for(const [id,p]of Object.entries(POS)){const el=document.querySelector(`[data-label="${id}"]`);if(el){el.style.left=(p[0]*100)+'%';el.style.top=Math.min(this.height-30,p[1]*this.height+Math.min(this.width,this.height)*.11+12)+'px';}}}
  configure(levels,awake,color,reduced){this.levels={...levels};this.awake=awake;this.color=color;this.reduced=reduced;for(const id of Object.keys(POS)){document.querySelector(`[data-label="${id}"]`)?.classList.toggle('visible',awake&&(id==='bloom'||levels[id]>0));}}
  point(e){const r=this.canvas.getBoundingClientRect();return{x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))};}
  hit(p){let best='bloom',distance=.2;for(const [id,xy]of Object.entries(POS)){if(id!=='bloom'&&!this.levels[id])continue;const d=Math.hypot(p.x-xy[0],p.y-xy[1]);if(d<distance){best=id;distance=d;}}return best;}
  degree(p){return Math.round(p.x*7+(1-p.y)*3)-2;}
  bind(){const c=this.canvas;c.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;e.preventDefault();c.focus({preventScroll:true});c.setPointerCapture(e.pointerId);const p=this.point(e);const voice=this.hit(p);this.pointers.set(e.pointerId,{...p,voice,start:performance.now(),last:performance.now(),holding:false,degree:this.degree(p)});this.onGesture({kind:'tap',voice,degree:this.degree(p),id:e.pointerId,...p});});
- c.addEventListener('pointermove',e=>{const prev=this.pointers.get(e.pointerId);if(!prev)return;const p=this.point(e),now=performance.now();if(Math.hypot(p.x-prev.x,p.y-prev.y)>.035&&now-prev.last>90){const voice=this.hit(p);this.onGesture({kind:'sweep',voice,degree:this.degree(p),id:e.pointerId,...p});this.pointers.set(e.pointerId,{...prev,...p,voice,last:now,degree:this.degree(p)});}else if(prev.holding){this.onGesture({kind:'move',voice:prev.voice,degree:this.degree(p),id:e.pointerId,...p});}});
+ c.addEventListener('pointermove',e=>{
+ const prev=this.pointers.get(e.pointerId);if(!prev)return;
+ const p=this.point(e),now=performance.now(),degree=this.degree(p);
+ const distance=Math.hypot(p.x-prev.x,p.y-prev.y);
+ if(prev.holding){
+   this.onGesture({kind:'move',voice:prev.voice,degree,id:e.pointerId,...p});
+   Object.assign(prev,p,{degree});
+ }
+ if(distance>.035&&now-prev.last>90){
+   const voice=this.hit(p);
+   this.onGesture({kind:'sweep',voice,degree,id:e.pointerId,...p});
+   this.pointers.set(e.pointerId,{...prev,...p,voice,last:now,degree});
+ }
+ });
  const end=e=>{const p=this.pointers.get(e.pointerId);if(!p)return;this.onGesture({kind:'release',voice:p.voice,id:e.pointerId,...p});this.pointers.delete(e.pointerId);};c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);c.addEventListener('lostpointercapture',end);window.addEventListener('blur',()=>this.releaseAll());document.addEventListener('visibilitychange',()=>{if(document.hidden)this.releaseAll();});}
  releaseAll(){for(const [id,p]of this.pointers)this.onGesture({kind:'release',id,voice:p.voice,...p});this.pointers.clear();}
  flash(voice,degree=0,velocity=.5,automatic=false,point){const pos=point?[point.x,point.y]:POS[voice]||POS.bloom;this.energy[voice]=Math.min(1.8,(this.energy[voice]||0)+velocity);this.notes.push({x:pos[0],y:pos[1],age:0,life:automatic?2.3:3.2,color:COLORS[voice],voice,velocity,degree,automatic});if(this.notes.length>65)this.notes.shift();if(!this.reduced)for(let i=0;i<(automatic?2:7);i++){const a=Math.random()*Math.PI*2;this.sparkles.push({x:pos[0],y:pos[1],vx:Math.cos(a)*(.01+Math.random()*.025),vy:Math.sin(a)*(.01+Math.random()*.025),age:0,life:1+Math.random()*1.4,color:COLORS[voice]});}if(this.sparkles.length>160)this.sparkles.splice(0,this.sparkles.length-160);}
@@ -536,7 +549,7 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()
 $('tinker-shortcut').addEventListener('click',()=>{selectTab('tinker');if(innerWidth<=760)document.querySelector('.tabs').scrollIntoView({behavior:reduced?'instant':'smooth',block:'start'});});
 document.querySelectorAll('[data-play]').forEach(b=>b.addEventListener('click',()=>gesture({kind:'tap',voice:b.dataset.play,degree:Math.floor(Math.random()*6),id:'key',x:.5,y:.5})));
 document.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||$('confirm-dialog').open||e.repeat)return;const idx=Number(e.key)-1;if(idx>=0&&idx<5){e.preventDefault();const id=G.VOICES[idx].id;if(id==='bloom'||state.levels[id])gesture({kind:'tap',voice:id,degree:idx,id:'keyboard',x:.5,y:.5});}});
-$('pause').addEventListener('click',async()=>{await awaken();playing=!playing;$('pause').textContent=playing?'Ⅱ':'▷';$('pause').setAttribute('aria-label',playing?'Pause music':'Resume music');syncAudio();render();toast(playing?'Your ensemble is playing again.':'Automatic music paused. Your world still earns.');});
+$('pause').addEventListener('click',async()=>{if(!await awaken())return;playing=!playing;$('pause').textContent=playing?'Ⅱ':'▷';$('pause').setAttribute('aria-label',playing?'Pause music':'Resume music');syncAudio();render();toast(playing?'Your ensemble is playing again.':'Automatic music paused. Your world still earns.');});
 $('mute').addEventListener('click',()=>{muted=!muted;$('mute').textContent=muted?'♩̸':'♫';$('mute').setAttribute('aria-label',muted?'Unmute sound':'Mute sound');syncAudio();render();});
 $('volume').addEventListener('input',e=>{volume=Number(e.target.value)/100;syncAudio();});$('density').addEventListener('input',e=>{density=Number(e.target.value)/100;syncAudio();});
 $('motion').addEventListener('click',()=>{reduced=!reduced;$('motion').setAttribute('aria-pressed',String(reduced));$('motion').textContent=reduced?'Full motion':'Gentle motion';syncAudio();});
@@ -555,7 +568,7 @@ window.addEventListener('pagehide',()=>stage.releaseAll());window.addEventListen
 window.ResonancePrototype={getState:()=>JSON.parse(JSON.stringify(state)),getAudio:()=>audio.getDiagnostics(),buy,selectWorld:applyWorld,selectTab};
 const context=document.modelContext;if(context?.registerTool){const life=new AbortController();const register=tool=>{try{Promise.resolve(context.registerTool(tool,{signal:life.signal})).catch(()=>{});}catch{}};
  register({name:'inspect_musical_world',description:'Read Resonance, production, voices, current world and audio status.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>({state:window.ResonancePrototype.getState(),perSecond:G.rate(state),audio:audio.getDiagnostics()})});
- register({name:'buy_musical_voice',description:'Spend earned Resonance to buy one voice, exactly like its Grow button.',inputSchema:{type:'object',properties:{voice:{type:'string',enum:G.VOICES.map(v=>v.id)}},required:['voice'],additionalProperties:false},execute:async input=>{if(!input||!G.VOICES.some(v=>v.id===input.voice))throw new Error('Unknown voice');if(!G.canBuy(state,input.voice))return{ok:false,message:'Not affordable or not discovered.'};const result=G.buy(state,input.voice);syncAudio();render();if(awake)audio.play(input.voice,0,.6,1);return{...result,resonance:state.resonance,perSecond:G.rate(state)};}});
+ register({name:'buy_musical_voice',description:'Spend earned Resonance to buy one voice, exactly like its Grow button.',inputSchema:{type:'object',properties:{voice:{type:'string',enum:G.VOICES.map(v=>v.id)}},required:['voice'],additionalProperties:false},execute:async input=>{if(!input||!G.VOICES.some(v=>v.id===input.voice))throw new Error('Unknown voice');if(!G.canBuy(state,input.voice))return{ok:false,message:'Not affordable or not discovered.'};const result=await buy(input.voice);return{...result,resonance:state.resonance,perSecond:G.rate(state)};}});
  window.addEventListener('pagehide',()=>life.abort(),{once:true});}
 })();
 </script>
