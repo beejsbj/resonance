@@ -2,6 +2,8 @@
 
 Researched 2026-09-11. Evidence for the live orchestra-defense decision; recommendations below are proposals, not settled product decisions. This is a comparison of relevant precedents, not a claim that every game in these genres follows one formula.
 
+Follow-up: Burooj asked to reconsider mining as an independent system against six named references. See [the six-game comparison](six-game-economy-comparison.md). The orchestra-as-primary-income proposal below was not accepted and should not be treated as the current design direction.
+
 ## What the precedents establish
 
 | Reference | Verified mechanic | Relevance to Resonance |
