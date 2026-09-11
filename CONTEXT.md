@@ -8,7 +8,11 @@ The shared rhythmic clock against which mining, instrument actions, touch timing
 
 ## Resonance
 
-The prototype's provisional spendable resource, earned actively through touch and automatically through mining. Its final fiction and name remain unsettled.
+The provisional name for the spendable resource earned actively through touch and automatically through gathering. Gathering awakens dormant musical potential in the world; spending supports restoration and recruitment.
+
+## Dormant musical potential
+
+The world's latent capacity for music, present at particular locations and awakened through gathering.
 
 ## Active touch
 
@@ -44,7 +48,7 @@ The complete defensive arrangement of instruments and their relationships across
 
 ## Mine
 
-A base structure that produces resources on a division of the global beat and continues producing while the player is away. Offline time does not advance danger.
+The provisional name for a gathering structure placed at a site of dormant musical potential. It produces resources on a division of the global beat, including while the player is away without advancing danger.
 
 ## Crisis
 

@@ -13,6 +13,9 @@ The game should be complete without ads or recurring monetization. Burooj wants 
 - Tap, swipe, hold, and voice are conductor support. They are separate from instrument powers and remain useful during live play.
 - Every ordinary tap earns resources. Global-beat accuracy may add a capped bonus but cannot gate base income.
 - Mining and base building compound incrementally. Mines continue while the player is away; attacks and destruction do not.
+- Gathering awakens dormant musical potential at particular places in the world. Spending supports restoration and recruitment: awakening places or performers, with recruited performers joining the defense. The gathering structure and resource retain provisional names.
+- Instruments can be placed freely; gathering structures must occupy resource sites.
+- Rebuilding a destroyed instrument costs resources and preserves its musical development within the current run. Its sound and defensive contribution are absent until it returns.
 - Ordinary play can be enjoyed without constant input. Bosses or crisis waves may make live support substantially important.
 - Instruments have stable identities. Recruiting performers, arranging them, developing their technique, and unlocking parallel instruments are separate progression domains.
 - Musical development may use tempo, pitch, register, beat division, phase, harmony, dynamics, articulation, or relationships within the arrangement.
@@ -25,7 +28,7 @@ The game should be complete without ads or recurring monetization. Burooj wants 
 The wayfinding map must resolve enough of these relationships to make a specification possible:
 
 - The progression grammar: which musical changes are global, instrument-specific, arrangement-specific, run-specific, or permanent.
-- The economy: resource fiction, compounding curves, mining expansion, active tap value, tempo effects, and spending tension.
+- The economy: the concrete form and names of gathering structures and resources within the restoration fiction, compounding curves, expansion, active tap value, tempo effects, and spending tension.
 - The orchestra: instrument roles, recruitment, placement, networking, damage, destruction, repair, and arrangement bonuses.
 - The conductor: the support vocabulary for tap, swipe, hold, and voice; power limits; targeting; and roguelite variations.
 - The opposition: enemy behaviors, wave escalation, crisis cadence, loss, recovery, and the boundary between idle safety and required presence.
