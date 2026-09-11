@@ -10,7 +10,7 @@ The game should be complete without ads or recurring monetization. Burooj wants 
 
 - The arena is top-down, radial, and pathless. Enemies approach a stationary central conductor from all directions.
 - Instrument towers defend automatically. Their attacks are also musical performances, so the defensive arrangement creates the music.
-- Tap, swipe, hold, and voice are conductor support. They are separate from instrument powers and remain useful during live play.
+- Tap, swipe, hold, and voice are conductor interventions, separate from automatic instrument powers. Conductor taps also directly attack and damage enemies.
 - Every ordinary tap earns resources. Global-beat accuracy may add a capped bonus but cannot gate base income.
 - Mining and base building compound incrementally. Mines continue while the player is away; attacks and destruction do not.
 - Gathering awakens dormant musical potential at particular places in the world. Spending supports restoration and recruitment: awakening places or performers, with recruited performers joining the defense. The gathering structure and resource retain provisional names.
@@ -18,6 +18,9 @@ The game should be complete without ads or recurring monetization. Burooj wants 
 - Rebuilding a destroyed instrument costs resources and preserves its musical development within the current run. Its sound and defensive contribution are absent until it returns.
 - Ordinary play can be enjoyed without constant input. Bosses or crisis waves may make live support substantially important.
 - Instruments have stable identities. Recruiting performers, arranging them, developing their technique, and unlocking parallel instruments are separate progression domains.
+- Performers are amorphous musical beings; the fiction can be strange and need not resemble physical musicians or equipment. Discovery does not fix a being's eventual placement; recruitment makes it available for placement in the active orchestra.
+- Nearby entities carry the conductor's pulse outward through proximity. Exact ranges, disconnection effects, and which entities relay it remain to be defined.
+- Income and purchased upgrades remain central to the idle incremental game. Reinterpreting gathering as awakening or recruitment does not remove that economy.
 - Musical development may use tempo, pitch, register, beat division, phase, harmony, dynamics, articulation, or relationships within the arrangement.
 - The sound may be intentionally dense and maximalist. Burooj likes the current prototype's musical direction.
 - Runs escalate until defeat. Roguelite variation may alter conductor powers, arrangements, instrument techniques, or the environment for one run.
@@ -43,3 +46,4 @@ The wayfinding map must resolve enough of these relationships to make a specific
 - The ladder `solo → pair → section → electric` is rejected. It conflates headcount, arrangement, development, and instrument identity.
 - EmotiTone is a visual and interaction reference. Changes to the EmotiTone project require their own authorization.
 - Prototype mechanics remain provisional until play or decision work settles them.
+- Ground design recommendations in established idle incremental, tower-defense, and survival conventions, then develop their musical expression. Musical fiction alone is not a reason to remove the genre foundations.
