@@ -5,7 +5,22 @@
   "buildCommand": "node scripts/assemble.mjs",
   "outputDirectory": "public",
   "trailingSlash": true,
-  "rewrites": [
-    { "source": "/", "destination": "/prototype.html" }
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/play/",
+      "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/play/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
   ]
 }

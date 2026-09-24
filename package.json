@@ -11,7 +11,9 @@
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint",
     "format": "oxfmt",
-    "assemble": "node scripts/assemble.mjs"
+    "assemble": "node scripts/assemble.mjs",
+    "test": "node --test test/*.test.js",
+    "balance": "node scripts/balance.mjs"
   },
   "dependencies": {
     "react": "19.2.6",
