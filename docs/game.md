@@ -19,7 +19,7 @@ This build is still evidence: it does not settle the design. Where the brief or 
 | What happens beyond a destroyed relay? (the breach scenario) | Beings beyond the gap keep acting, uncoordinated: they drop half their entrances, stray off the beat and off the chord, and do 75% damage. Wells beyond it yield half and keep what they stored. Rebuilding or rerouting reconnects them. | `sim.js` `network`, `onTick`, `wellYield` |
 | Which entities relay the pulse? | The conductor and every placed, living being. Wells do not relay. Each identity has its own relay reach, and Drone reaches farthest. | `content.js` `BEINGS.*.relay` |
 | How does one tap choose between striking and supporting? | One touch, one intention: an enemy under the finger is struck; otherwise an own being there is accented. It always earns. | `sim.js` `tap` |
-| What constrains tap attacks? | Conductor power. An off-beat strike costs 4; an on-beat strike costs nothing. Timing rewards skill without gating income or damage. | `CONDUCTOR` |
+| What constrains tap attacks? | Conductor power. An off-beat strike costs 4; an on-beat strike costs nothing. Timing rewards skill without gating income or damage. "On the beat" means the beat as heard: a tap is judged from the moment the finger lands, corrected for audio latency. | `CONDUCTOR`, `tap` |
 | Do performers sound when nothing threatens them? | Yes, quietly and only on the beat. The base is always a performance. | `onTick` |
 | How is harmony kept while voices change? | One four-bar progression (i–VI–III–VII in D minor). Each identity reads the chord through its own figure and register. | `harmony.js` |
 | Recruitment versus placement cost | Awakening costs Resonance; placing and moving are free. Arrangement is a musical decision, not a purchase. | `awaken`, `place`, `lift` |
@@ -27,7 +27,7 @@ This build is still evidence: it does not settle the design. Where the brief or 
 | How do crises differ, and can an idle player survive one? | The Great Hush grows a shell at half health. The shell cracks on its own after 14 s; a swipe breaks it at once and leaves the Hush exposed to 60% more damage. Its telegraphed sweeps reward holding a shelter. Live play helps a lot but is not strictly required. | `updateBoss`, `gust` |
 | What persists after defeat? | Only echoes (five small head starts) and a codex of identities met. The base, roster, wells, and development reset. | `endRun`, `ECHOES` |
 | Roguelite variation | Motifs: after waves 3, 7, 12, 17, 23 and 30, choose one of three. An ignored offer resolves itself when the next wave begins, so idle play never stalls. | `MOTIFS`, `finishWave` |
-| Offline | Wells settle up to eight hours at their last connection state. Danger never advances. A wave interrupted by leaving waits paused. | `settleAway`, `main.js` visibility handling |
+| Offline | Wells settle up to eight hours at their last connection state. Danger never advances. A wave interrupted by leaving waits paused, and the conductor waits with it: power and the Sing cooldown recover only between waves, so leaving is never a way to catch a breath mid-fight. | `settleAway`, `main.js` visibility handling |
 | Defeated crisis | The Great Hush becomes music: a new sleeping being appears where it fell. | `hurtBoss` |
 
 Rejected ideas stay rejected. There is no identity-changing upgrade ladder, no rhythm gate on income, and no offline danger.
