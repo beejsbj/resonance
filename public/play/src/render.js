@@ -50,6 +50,8 @@ export class Stage {
     return g;
   }
 
+  // One sprite per colour at full strength. bloom() applies the moment's alpha, so the cache holds
+  // a few dozen entries instead of one per frame.
   glow(color) {
     if (this.glows.has(color)) return this.glows.get(color);
     const s = document.createElement('canvas'); s.width = s.height = 64;
@@ -60,8 +62,11 @@ export class Stage {
     return s;
   }
 
-  bloom(c, x, y, radius, color) {
+  bloom(c, x, y, radius, color, alpha = 1) {
+    const before = c.globalAlpha;
+    c.globalAlpha = before * clamp(alpha, 0, 1);
     c.drawImage(this.glow(color), x - radius, y - radius, radius * 2, radius * 2);
+    c.globalAlpha = before;
   }
 
   // Sim events become visual effects at their own beat time (`t`), matching when the sound lands.
@@ -242,7 +247,7 @@ export class Stage {
         c.restore(); this.healthBar(c, w, 16); continue;
       }
       const v = this.vib.get(w.id);
-      if (v && v.amp > 0.02) this.bloom(c, 0, 0, 22 + v.amp * 18, v.color.replace(/[\d.]+\)$/, `${0.5 * v.amp})`));
+      if (v && v.amp > 0.02) this.bloom(c, 0, 0, 22 + v.amp * 18, v.color, 0.5 * v.amp);
       c.rotate(Math.PI / 4 + t * 0.2);
       c.fillStyle = w.linked ? 'rgba(176,232,219,0.25)' : 'rgba(176,232,219,0.08)';
       c.strokeStyle = w.linked ? 'rgba(176,232,219,0.95)' : 'rgba(176,232,219,0.4)'; c.lineWidth = 1.4;
@@ -293,7 +298,7 @@ export class Stage {
         const stats = beingStats(state, b);
         c.strokeStyle = def.color; c.globalAlpha = 0.25; c.setLineDash([3, 5]); c.beginPath(); c.arc(b.x, b.y, stats.range, 0, TAU); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
       }
-      if (amp > 0.03) this.bloom(c, x, y, r * (2.2 + amp * 1.6), v.color.replace(/[\d.]+\)$/, `${0.7 * amp})`));
+      if (amp > 0.03) this.bloom(c, x, y, r * (2.2 + amp * 1.6), v.color, 0.7 * amp);
       const wobble = 1 + amp * 2.2 + (b.linked ? 0 : 1.5);
       const grad = c.createRadialGradient(x - r * 0.3, y - r * 0.3, 1, x, y, r * 1.2);
       grad.addColorStop(0, b.linked ? IVORY : '#bdb3a8');
@@ -363,7 +368,7 @@ export class Stage {
     const k = state.conductor;
     const ward = k.ward;
     if (ward) { c.fillStyle = 'rgba(176,232,219,0.07)'; c.strokeStyle = 'rgba(176,232,219,0.7)'; c.lineWidth = 1.2; c.beginPath(); c.arc(ward.x, ward.y, ward.r, 0, TAU); c.fill(); c.stroke(); }
-    this.bloom(c, CENTER.x, CENTER.y, 44 + beatPulse * 16, `rgba(166,191,238,${0.35 + 0.35 * beatPulse})`);
+    this.bloom(c, CENTER.x, CENTER.y, 44 + beatPulse * 16, 'rgba(166,191,238,1)', 0.35 + 0.35 * beatPulse);
     const grad = c.createRadialGradient(CENTER.x - 4, CENTER.y - 4, 2, CENTER.x, CENTER.y, 18);
     grad.addColorStop(0, IVORY); grad.addColorStop(0.5, '#a6bfee'); grad.addColorStop(1, 'rgba(166,191,238,0.2)');
     c.fillStyle = grad; this.blob(c, CENTER.x, CENTER.y, 14 + beatPulse * 1.5, t, 1 + beatPulse, 0); c.fill();
@@ -386,7 +391,7 @@ export class Stage {
       switch (f.kind) {
         case 'beam':
           c.strokeStyle = f.color; c.globalAlpha = a; c.lineWidth = f.accent ? 2.4 : 1.4;
-          for (const h of f.hits) { c.beginPath(); c.moveTo(f.x, f.y); c.lineTo(h.x, h.y); c.stroke(); this.bloom(c, h.x, h.y, 10 * a + 4, f.color.replace(/[\d.]+\)$/, `${0.8 * a})`)); }
+          for (const h of f.hits) { c.beginPath(); c.moveTo(f.x, f.y); c.lineTo(h.x, h.y); c.stroke(); this.bloom(c, h.x, h.y, 10 * a + 4, f.color, 0.8 * a); }
           break;
         case 'note':
           c.globalAlpha = a * (f.linked ? 0.8 : 0.5); c.strokeStyle = f.color; c.lineWidth = 1;
@@ -395,7 +400,7 @@ export class Stage {
         case 'mote': {
           const q = ease(p);
           const x = f.x + (CENTER.x - f.x) * q, y = f.y + (CENTER.y - f.y) * q - Math.sin(q * Math.PI) * 14;
-          c.globalAlpha = a; this.bloom(c, x, y, 6, f.color.replace(/[\d.]+\)$/, '0.9)'));
+          c.globalAlpha = a; this.bloom(c, x, y, 6, f.color, 0.9);
           c.globalAlpha = a * 0.8; c.fillStyle = IVORY; c.font = '600 8px ui-monospace, monospace'; c.textAlign = 'center';
           if (p < 0.5) c.fillText('+' + fmt(f.amount), f.x, f.y - 14 - p * 20);
           break;
