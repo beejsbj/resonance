@@ -11,8 +11,8 @@ const LATENCY = 0.06; // seconds between a beat in the simulation and its sound;
 const $ = id => document.getElementById(id);
 
 const meta = loadMeta();
+let awayEarned = 0; // declared before loadRun(), which assigns it
 let state = loadRun();
-let awayEarned = 0;
 let selectedId = null;
 let placing = null; // being id being placed
 let ghost = null;
