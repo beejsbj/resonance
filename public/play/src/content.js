@@ -45,7 +45,7 @@ export const ENEMIES = {
 
 export const WELL = { hp: 40, radius: 13, yield: 3, buildBase: 18, buildGrowth: 1.55, upgradeBase: 22, upgradeGrowth: 1.7, max: 8 };
 
-export const CONDUCTOR = { hp: 100, reach: 96, power: 100, regen: 12, strikeRadius: 24, strikeCost: 4, accentCost: 6, gustCost: 30, wardDrain: 15, singCost: 45, singCooldown: 20, singLength: 8 };
+export const CONDUCTOR = { hp: 100, reach: 96, power: 100, regen: 12, strikeRadius: 24, strikeCost: 4, accentCost: 6, gustCost: 30, wardDrain: 30, singCost: 45, singCooldown: 20, singLength: 8 };
 
 // Orchestra-wide growth: bought with Resonance within a run.
 export const GLOBAL = {

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as S from '../public/play/src/sim.js';
-import { CENTER, GRID, BEINGS } from '../public/play/src/content.js';
+import { CENTER, GRID, BEINGS, CONDUCTOR, CRISIS_EVERY } from '../public/play/src/content.js';
 import { pitchFor, chordAt, degreeToMidi } from '../public/play/src/harmony.js';
 
 const run = (seed = 7) => S.newRun(S.newMeta(), seed);
@@ -122,4 +122,48 @@ test('attack events land exactly on the sixteenth grid when linked', () => {
   assert.ok(events.length > 0);
   const tick = S.tickSeconds(state);
   for (const e of events) assert.ok(Math.abs(e.t / tick - Math.round(e.t / tick)) < 1e-6);
+});
+
+test('shelter drains the same power per second at any frame rate', () => {
+  const drained = hz => {
+    const state = run();
+    state.conductor.power = 60;
+    for (let i = 0; i < hz; i++) { S.hold(state, { x: 180, y: 280 }, 1 / hz); S.step(state, 1 / hz); }
+    return state.conductor.power;
+  };
+  assert.ok(Math.abs(drained(60) - drained(120)) < 1e-6);
+  assert.ok(Math.abs(drained(60) - (60 - CONDUCTOR.wardDrain + CONDUCTOR.regen)) < 1e-6);
+});
+
+test('a crisis sweep lands exactly where it was telegraphed', () => {
+  const state = run();
+  state.wave = CRISIS_EVERY - 1; state.interlude = 0.01;
+  state.conductor.hp = 1e9;
+  let seed = 3, events = [];
+  const jitter = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let t = 0; t < 70; ) {
+    const dt = (1 / 60) * (0.7 + 0.6 * jitter());
+    events.push(...S.step(state, dt)); t += dt;
+    if (state.boss) state.boss.hp = state.boss.maxHp = 1e9; // keep the Hush alive to watch several sweeps
+  }
+  events = events.filter(e => e.type === 'sweepWarn' || e.type === 'sweep');
+  const sweeps = events.filter(e => e.type === 'sweep');
+  assert.ok(sweeps.length >= 4);
+  for (let i = 0; i < events.length; i++) if (events[i].type === 'sweep') {
+    assert.equal(events[i - 1].type, 'sweepWarn', 'exactly one warning before each sweep');
+    assert.equal(events[i].angle, events[i - 1].angle);
+    assert.ok(events[i].t - events[i - 1].t > 2.9, 'three seconds of warning');
+  }
+});
+
+test('stepping away mid-wave pauses the conductor too; between waves it rests', () => {
+  const state = run();
+  advance(state, 40);
+  assert.equal(state.phase, 'wave');
+  Object.assign(state.conductor, { power: 5, singCooldown: 15, chorus: 4 });
+  S.settleAway(state, 60);
+  assert.deepEqual([state.conductor.power, state.conductor.singCooldown, state.conductor.chorus], [5, 15, 4]);
+  state.phase = 'interlude';
+  S.settleAway(state, 60);
+  assert.deepEqual([state.conductor.power, state.conductor.singCooldown, state.conductor.chorus], [CONDUCTOR.power, 0, 0]);
 });

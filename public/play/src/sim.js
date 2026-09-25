@@ -392,7 +392,7 @@ export function swipe(state, a, b) {
 }
 
 export function hold(state, p, seconds) {
-  if (!spendPower(state, Math.max(0.5, CONDUCTOR.wardDrain * seconds))) { state.conductor.ward = null; return no('The conductor needs a breath.'); }
+  if (!spendPower(state, CONDUCTOR.wardDrain * seconds)) { state.conductor.ward = null; return no('The conductor needs a breath.'); }
   state.conductor.ward = { x: p.x, y: p.y, r: 60, until: state.time + 0.3 + (has(state, 'lingerWard') ? 2 : 0) };
   return ok('', [{ type: 'ward', t: state.time, x: p.x, y: p.y }]);
 }
@@ -551,7 +551,7 @@ function startWave(state, events) {
     const angle = state.fronts[0];
     const p = spawnPoint(state, angle);
     const hp = Math.round(420 * Math.pow(1.35, state.wave / CRISIS_EVERY - 1));
-    state.boss = { x: p.x, y: p.y, hp, maxHp: hp, shell: false, broken: false, sweepClock: 9, telegraph: 0, angle: 0, spawnClock: 6 };
+    state.boss = { x: p.x, y: p.y, hp, maxHp: hp, shell: false, broken: false, sweepClock: 9, telegraph: 0, angle: 0, aimed: false, spawnClock: 6 };
     events.push({ type: 'crisis', t: state.time, x: p.x, y: p.y });
   }
 }
@@ -620,17 +620,17 @@ function updateBoss(state, dt, events) {
   boss.spawnClock -= dt;
   if (boss.spawnClock <= 0) { boss.spawnClock = 7; for (let i = 0; i < 3; i++) { const e = { id: 'e' + state.nextId++, type: 'drifter', x: boss.x + (random(state) - 0.5) * 30, y: boss.y + (random(state) - 0.5) * 30, hp: Math.ceil(ENEMIES.drifter.hp * Math.pow(1.18, state.wave - 1)), slow: 0, engaged: null, attackClock: 0 }; e.maxHp = e.hp; state.enemies.push(e); } }
   boss.sweepClock -= dt;
-  if (boss.sweepClock <= 3 && boss.telegraph <= 0) {
+  if (boss.sweepClock <= 3 && !boss.aimed) {
     // Aim the sweep at the densest part of the orchestra, and warn three seconds ahead: a moment for the conductor.
     const live = structures(state);
     const aim = live.length ? live[Math.floor(random(state) * live.length)] : { x: boss.x, y: boss.y };
     boss.angle = Math.atan2(aim.y - CENTER.y, aim.x - CENTER.x);
-    boss.telegraph = 3;
+    boss.telegraph = 3; boss.aimed = true;
     events.push({ type: 'sweepWarn', t: state.time, angle: boss.angle });
   }
   if (boss.telegraph > 0) boss.telegraph -= dt;
   if (boss.sweepClock <= 0) {
-    boss.sweepClock = boss.shell ? 8 : 11; boss.telegraph = 0;
+    boss.sweepClock = boss.shell ? 8 : 11; boss.telegraph = 0; boss.aimed = false;
     for (const s of structures(state)) {
       const a = Math.atan2(s.y - CENTER.y, s.x - CENTER.x);
       if (Math.abs(Math.atan2(Math.sin(a - boss.angle), Math.cos(a - boss.angle))) < 0.6) damageStructure(state, s, 26, events);
@@ -695,16 +695,16 @@ export function step(state, seconds) {
   return events;
 }
 
-// Time away: wells keep singing (at the connection they had), danger waits.
+// Time away: wells keep singing (at the connection they had), danger waits. A wave left mid-way waits
+// whole, conductor included, so stepping away is never a way to catch a breath in a fight.
 export function settleAway(state, seconds) {
   const s = clamp(seconds, 0, OFFLINE_CAP);
   if (state.phase === 'defeated' || s < 1) return 0;
   const earned = incomePerSecond({ ...state, conductor: { ...state.conductor, chorus: 0 } }) * s;
   earn(state, earned);
-  state.conductor.power = CONDUCTOR.power;
-  state.conductor.singCooldown = Math.max(0, state.conductor.singCooldown - s);
-  state.conductor.chorus = 0;
-  state.conductor.ward = null;
+  const c = state.conductor;
+  if (state.phase !== 'wave') { c.power = CONDUCTOR.power; c.singCooldown = Math.max(0, c.singCooldown - s); c.chorus = 0; }
+  c.ward = null;
   return earned;
 }
 

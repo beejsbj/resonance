@@ -1,6 +1,6 @@
 // Resonance: joins the simulation, the stage, the sound, and the player's hands.
 import * as S from './sim.js';
-import { W, BEINGS, DEVELOPMENTS, GLOBAL, ECHOES, MOTIFS, WELL, GRID } from './content.js';
+import { W, BEINGS, DEVELOPMENTS, GLOBAL, ECHOES, MOTIFS, WELL, GRID, CONDUCTOR } from './content.js';
 import { Stage, fmt } from './render.js';
 import { Sound } from './audio.js';
 import { pitchFor } from './harmony.js';
@@ -322,7 +322,7 @@ function conductorPanel() {
   top.append(button('Sing', c.singCooldown > 0 ? `echoing · ${Math.ceil(c.singCooldown)}s` : 'Orchestra and wells swell for 8s.', null, () => act(S.sing(state))));
   if (state.phase === 'interlude') top.append(button('Call the wave', 'Earlier means a bonus.', null, () => act(S.callWave(state))));
   panel.push(top);
-  if (state.phase !== 'interlude') panel.push(para(`Power ${Math.floor(c.power)} · strike 4 (free on the beat) · accent 6 · gust 30 · shelter 15/s`, 'stats'));
+  if (state.phase !== 'interlude') panel.push(para(`Power ${Math.floor(c.power)} · strike ${CONDUCTOR.strikeCost} (free on the beat) · accent ${CONDUCTOR.accentCost} · gust ${CONDUCTOR.gustCost} · shelter ${CONDUCTOR.wardDrain}/s`, 'stats'));
   const g = grid();
   for (const key of Object.keys(GLOBAL)) g.append(button(`${GLOBAL[key].name} ${state.globals[key]}`, GLOBAL[key].detail, S.globalCost(state, key), () => act(S.buyGlobal(state, key))));
   panel.push(g);
