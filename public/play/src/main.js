@@ -81,6 +81,7 @@ function hear(e) {
     case 'bar': {
       const placed = state.beings.filter(b => b.placed && b.hp > 0);
       const share = placed.length ? placed.filter(b => b.linked).length / placed.length : 1;
+      sound.setVoices(placed.length + state.wells.filter(w => w.hp > 0).length);
       sound.chord(e.bar, when, 0.5 + 0.5 * share);
       break;
     }

@@ -45,4 +45,5 @@ Rejected ideas stay rejected. There is no identity-changing upgrade ladder, no r
 - Run the game: `cd public && python3 -m http.server`, then open `/play/`. On Vercel, `/` redirects to `/play/`. The prototype stays at `/prototype.html` and the workshop at `/workshop/`.
 - Tests: `npm test`. The simulation is DOM-free, so its rules are tested directly.
 - Balance: `npm run balance`. Idle, managing, and active bots play whole runs and report how far each got. The numbers live in `public/play/src/content.js`.
+- Loudness: `npm run loudness`. Headless Chromium plays saved runs from the first interlude to a dense late wave and meters the speaker output; it fails if anything clips. Run it after changing voices, levels, or the mix. The mix lifts a small orchestra (`Sound.setVoices`) and a limiter guards the dense end.
 - The service worker caches the shell. Bump `CACHE` in `sw.js` when shipping changes users must receive at once.

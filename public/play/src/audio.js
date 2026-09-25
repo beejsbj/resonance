@@ -7,6 +7,7 @@ export class Sound {
     this.muted = false;
     this.active = 0;
     this.limit = 72;
+    this.trim = 1;
   }
 
   async start() {
@@ -21,10 +22,14 @@ export class Sound {
     const AC = window.AudioContext || window.webkitAudioContext;
     const c = this.ctx = new AC({ latencyHint: 'interactive' });
     this.master = c.createGain();
-    this.master.gain.value = this.muted ? 0 : 0.8;
+    this.master.gain.value = this.level;
     const comp = c.createDynamicsCompressor();
     comp.threshold.value = -20; comp.knee.value = 18; comp.ratio.value = 5; comp.attack.value = 0.008; comp.release.value = 0.22;
-    this.master.connect(comp).connect(c.destination);
+    // A fast limiter after the glue compressor catches the transients a dense wave stacks up, so nothing clips.
+    const limiter = c.createDynamicsCompressor();
+    limiter.threshold.value = -6; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.001; limiter.release.value = 0.1;
+    this.master.connect(comp).connect(limiter).connect(c.destination);
+    this.speaker = limiter; // what the speaker hears; scripts/loudness.mjs meters it
     // Ambience sends: a dotted-eighth delay and a generated hall. Density is the aesthetic; the compressor keeps it safe.
     this.delay = c.createDelay(2);
     const fb = c.createGain(); fb.gain.value = 0.28;
@@ -41,9 +46,21 @@ export class Sound {
 
   setTempo(bpm) { if (this.delay) this.delay.delayTime.setTargetAtTime((60 / bpm) * 0.75, this.ctx.currentTime, 0.1); }
 
+  get level() { return this.muted ? 0 : 0.8 * this.trim; }
+
   setMuted(muted) {
     this.muted = muted;
-    if (this.master) this.master.gain.setTargetAtTime(muted ? 0 : 0.8, this.ctx.currentTime, 0.03);
+    if (this.master) this.master.gain.setTargetAtTime(this.level, this.ctx.currentTime, 0.03);
+  }
+
+  // The mix follows the orchestra's size: a lone voice is lifted so it carries on a phone speaker,
+  // and the lift fades out as voices join, so a full orchestra sits where it did. `voices` counts
+  // placed beings and wells that are sounding.
+  setVoices(voices) {
+    const trim = Math.max(1, Math.min(2.5, 3 / Math.sqrt(Math.max(1, voices))));
+    if (Math.abs(trim - this.trim) < 0.01) return;
+    this.trim = trim;
+    if (this.master) this.master.gain.setTargetAtTime(this.level, this.ctx.currentTime, 1.5);
   }
 
   impulse(seconds, decay) {
