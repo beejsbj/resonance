@@ -714,10 +714,13 @@ export function echoesFor(state) {
   return Math.floor(state.wave * 1.5 + state.stats.bosses * 4 + Math.pow(state.lifetime, 0.35) / 2);
 }
 
+// Settles a fallen run into the meta once; asking again (the fall screen reopened after a reload) changes nothing.
 export function endRun(state, meta) {
+  if (Number.isFinite(state.echoesEarned)) return state.echoesEarned;
   const echoes = echoesFor(state);
   meta.echoes += echoes; meta.runs += 1; meta.bestWave = Math.max(meta.bestWave, state.wave);
   for (const b of state.beings) if (!meta.known.includes(b.identity)) meta.known.push(b.identity);
+  state.echoesEarned = echoes;
   return echoes;
 }
 

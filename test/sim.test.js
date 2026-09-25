@@ -175,3 +175,14 @@ test('stepping away mid-wave pauses the conductor too; between waves it rests', 
   S.settleAway(state, 60);
   assert.deepEqual([state.conductor.power, state.conductor.singCooldown, state.conductor.chorus], [CONDUCTOR.power, 0, 0]);
 });
+
+test('a fallen run settles its echoes once, however often the fall screen opens', () => {
+  const state = run();
+  state.wave = 9; state.phase = 'defeated';
+  const meta = S.newMeta();
+  const first = S.endRun(state, meta);
+  const again = S.endRun(JSON.parse(JSON.stringify(state)), meta); // as after a reload
+  assert.equal(again, first);
+  assert.equal(meta.echoes, first);
+  assert.equal(meta.runs, 1);
+});

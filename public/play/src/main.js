@@ -34,7 +34,8 @@ function loadMeta() {
 function loadRun() {
   try {
     const saved = JSON.parse(localStorage.getItem(RUN_KEY));
-    if (saved && S.validRun(saved.state) && saved.state.phase !== 'defeated') {
+    // A fallen run is kept until a new one begins, so a reload returns to the fall screen and its echo shop.
+    if (saved && S.validRun(saved.state) && (saved.state.phase !== 'defeated' || Number.isFinite(saved.state.echoesEarned))) {
       const s = saved.state;
       S.network(s);
       awayEarned = S.settleAway(s, (Date.now() - saved.savedAt) / 1000);
@@ -45,7 +46,8 @@ function loadRun() {
 }
 function save() {
   try {
-    localStorage.setItem(RUN_KEY, JSON.stringify({ savedAt: Date.now(), state }, (k, v) => (k === 'relays' ? undefined : v)));
+    // While hidden the run is not advancing, so its save is stamped at the moment it was left.
+    localStorage.setItem(RUN_KEY, JSON.stringify({ savedAt: hiddenAt || Date.now(), state }, (k, v) => (k === 'relays' ? undefined : v)));
     localStorage.setItem(META_KEY, JSON.stringify(meta));
   } catch { /* storage full or blocked: the run continues unsaved */ }
 }
@@ -168,6 +170,7 @@ document.addEventListener('visibilitychange', () => {
       if (earned >= 1) toast('While you were away, the wells gathered +' + fmt(earned) + '.');
       if (state.phase === 'wave') { state.paused = true; banner('The Hush waited for you'); }
     }
+    wakeSound();
     lastAudio = sound.now; lastPerf = performance.now();
   }
 });
@@ -178,8 +181,12 @@ setInterval(save, 4000);
 const canvas = $('stage');
 const pointers = new Map();
 
+// The OS can suspend audio (a call, another app taking focus). The next touch brings it back.
+const wakeSound = () => { if (started && sound.ctx && !sound.running) sound.start().catch(() => {}); };
+
 canvas.addEventListener('pointerdown', e => {
   if (!started) return;
+  wakeSound();
   canvas.setPointerCapture(e.pointerId);
   const p = stage.toWorld(e.clientX, e.clientY);
   const ptr = { start: p, point: p, at: performance.now(), heard: heardTime(), moved: false, holding: false, held: false };
@@ -391,7 +398,6 @@ function openMotif() {
 function openFall() {
   const earned = S.endRun(state, meta);
   save();
-  localStorage.removeItem(RUN_KEY);
   $('fall-title').textContent = 'You held until wave ' + state.wave;
   $('fall-text').textContent = `${state.stats.kills} threats resolved, ${state.stats.bosses} crises survived, ${fmt(state.lifetime)} Resonance gathered. +${earned} echoes. Best: wave ${meta.bestWave}.`;
   renderShop();
@@ -428,7 +434,8 @@ $('begin').addEventListener('click', async () => {
   state.paused = false;
   $('curtain').hidden = true;
   if (awayEarned >= 1) toast('While you were away, the wells gathered +' + fmt(awayEarned) + '.');
-  if (state.motifOffer) openMotif();
+  if (state.phase === 'defeated') openFall();
+  else if (state.motifOffer) openMotif();
   tutorial();
 });
 
