@@ -117,18 +117,19 @@ function react(events) {
       case 'reconnected': { const b = state.beings.find(x => x.id === e.id); if (b) toast(BEINGS[b.identity].name + ' hears the pulse again.'); break; }
       case 'down': if (e.kind === 'being') toast(BEINGS[e.identity].name + ' fell silent · rebuild it to bring its voice back.'); break;
       case 'motifOffer': openMotif(); break;
-      case 'motif': if (e.auto) toast(MOTIFS[e.id].name + ' joined the performance.'); break;
+      case 'motif': $('motif').hidden = true; if (e.auto) toast(MOTIFS[e.id].name + ' joined the performance.'); break;
       case 'defeat': openFall(); break;
       default: break;
     }
   }
 }
 
-function act(result, quiet = false) {
+// Panel actions rebuild the panel; arena gestures only refresh it, so a thumb on a button isn't lost.
+function act(result, quiet = false, rebuild = true) {
   react(result.events || []);
   if (!quiet || !result.ok) toast(result.message);
   save();
-  renderUi(true);
+  renderUi(rebuild);
   return result;
 }
 
@@ -181,13 +182,12 @@ canvas.addEventListener('pointerdown', e => {
   if (!started) return;
   canvas.setPointerCapture(e.pointerId);
   const p = stage.toWorld(e.clientX, e.clientY);
-  pointers.set(e.pointerId, { start: p, point: p, at: performance.now(), heard: heardTime(), moved: false, holding: false });
+  const ptr = { start: p, point: p, at: performance.now(), heard: heardTime(), moved: false, holding: false, held: false };
+  pointers.set(e.pointerId, ptr);
   if (placing) ghost = ghostAt(p);
   if (state.paused) { state.paused = false; }
-  setTimeout(() => {
-    const ptr = pointers.get(e.pointerId);
-    if (ptr && !ptr.moved && !placing) { ptr.holding = true; }
-  }, 320);
+  // Bound to this press: a mouse reuses one pointerId, so a lookup by id could promote a later click.
+  setTimeout(() => { if (pointers.get(e.pointerId) === ptr && !ptr.moved && !placing) ptr.holding = ptr.held = true; }, 320);
 });
 canvas.addEventListener('pointermove', e => {
   const p = stage.toWorld(e.clientX, e.clientY);
@@ -203,11 +203,11 @@ const release = e => {
   if (!ptr || !started) return;
   const p = stage.toWorld(e.clientX, e.clientY);
   if (placing) { tryPlace(p); return; }
-  if (ptr.holding) return;
-  if (ptr.moved) { act(S.swipe(state, ptr.start, p), true); return; }
+  if (ptr.held) return; // a hold stays a hold, even one that ran out of power
+  if (ptr.moved) { act(S.swipe(state, ptr.start, p), true, false); return; }
   const result = S.tap(state, p, state.time - ptr.heard);
   if ('select' in result) { selectedId = result.select; }
-  act(result, true);
+  act(result, true, false);
   tutorial();
 };
 canvas.addEventListener('pointerup', release);
@@ -218,9 +218,11 @@ function ghostAt(p) {
   const being = state.beings.find(b => b.id === placing);
   return being ? { identity: being.identity, x: p.x, y: p.y, reason: S.placementReason(state, p.x, p.y, being.id) } : null;
 }
+// A placement that fails also ends placing, so the next touch strikes and gathers as usual.
 function tryPlace(p) {
   const result = S.place(state, placing, p.x, p.y);
-  if (result.ok) { selectedId = placing; placing = null; ghost = null; }
+  if (result.ok) selectedId = placing;
+  placing = null; ghost = null;
   act(result);
   tutorial();
 }
@@ -256,6 +258,7 @@ function button(label, detail, cost, onClick, extra = '') {
   b.children[1].textContent = cost === null ? '' : Number.isFinite(cost) ? fmt(cost) + ' ✧' : 'complete';
   if (detail) b.children[2].textContent = detail;
   b.disabled = cost !== null && !Number.isFinite(cost);
+  if (Number.isFinite(cost)) b.dataset.cost = cost;
   b.addEventListener('click', onClick);
   return b;
 }
@@ -270,6 +273,8 @@ function head(title, statusText, statusClass) {
   return d;
 }
 const para = (text, cls) => { const p = document.createElement('p'); p.textContent = text; if (cls) p.className = cls; return p; };
+// Text that changes every moment (power, health, a cooldown) refreshes in place instead of rebuilding the panel.
+const live = (el, text) => { el.textContent = text(); el.live = text; el.classList.add('live'); return el; };
 const grid = (cls = '') => { const g = document.createElement('div'); g.className = 'grid ' + cls; return g; };
 
 const RHYTHM = { 1: 'every sixteenth', 2: 'every eighth', 4: 'every beat', 8: 'every two beats', 16: 'every bar' };
@@ -293,14 +298,14 @@ function beingPanel(b) {
     g.append(button(`${dev.name} ${kind === 'mastery' ? level : '+' + level}`, dev.verb.replace(/^./, c => c.toUpperCase()), S.devCost(b, kind), () => act(S.develop(state, b.id, kind))));
   }
   panel.push(g);
-  if (b.placed) panel.push(button('Move', 'Step out of the arrangement and place again.', null, () => { act(S.lift(state, b.id)); placing = b.id; renderUi(true); }));
+  if (b.placed) panel.push(button('Move', 'Step out of the arrangement and place again.', null, () => { if (act(S.lift(state, b.id)).ok) placing = b.id; renderUi(true); }));
   return panel;
 }
 
 function wellPanel(w) {
   const panel = [head('Well · level ' + w.level, w.hp <= 0 ? 'silent' : w.linked ? 'in the pulse' : 'faint', w.hp <= 0 ? 'silent' : w.linked ? 'linked' : 'stray')];
   panel.push(para(w.linked ? 'Draws music from the ground on every bar.' : 'Outside the pulse it gathers half. Extend a relay to reach it.'));
-  panel.push(para(`${fmt(S.wellYield(state, w))} per bar · hp ${Math.ceil(w.hp)}/${w.maxHp}`, 'stats'));
+  panel.push(live(para('', 'stats'), () => `${fmt(S.wellYield(state, w))} per bar · hp ${Math.ceil(w.hp)}/${w.maxHp}`));
   if (w.hp <= 0) panel.push(button('Rebuild', 'Returns at its full depth.', S.rebuildCost(state, w), () => act(S.rebuild(state, w.id)), 'primary'));
   else panel.push(button('Deepen', `+${fmt(WELL.yield * (1 + 0.12 * (state.echo.deepWells || 0)))} per bar`, S.wellUpgradeCost(w), () => act(S.upgradeWell(state, w.id)), 'primary'));
   return panel;
@@ -321,10 +326,12 @@ function conductorPanel() {
   const panel = [];
   const top = document.createElement('div'); top.className = 'row';
   const c = state.conductor;
-  top.append(button('Sing', c.singCooldown > 0 ? `echoing · ${Math.ceil(c.singCooldown)}s` : 'Orchestra and wells swell for 8s.', null, () => act(S.sing(state))));
+  const sing = button('Sing', ' ', null, () => act(S.sing(state)));
+  live(sing.children[2], () => (c.singCooldown > 0 ? `echoing · ${Math.ceil(c.singCooldown)}s` : 'Orchestra and wells swell for 8s.'));
+  top.append(sing);
   if (state.phase === 'interlude') top.append(button('Call the wave', 'Earlier means a bonus.', null, () => act(S.callWave(state))));
   panel.push(top);
-  if (state.phase !== 'interlude') panel.push(para(`Power ${Math.floor(c.power)} · strike ${CONDUCTOR.strikeCost} (free on the beat) · accent ${CONDUCTOR.accentCost} · gust ${CONDUCTOR.gustCost} · shelter ${CONDUCTOR.wardDrain}/s`, 'stats'));
+  if (state.phase !== 'interlude') panel.push(live(para('', 'stats'), () => `Power ${Math.floor(c.power)} · strike ${CONDUCTOR.strikeCost} (free on the beat) · accent ${CONDUCTOR.accentCost} · gust ${CONDUCTOR.gustCost} · shelter ${CONDUCTOR.wardDrain}/s`));
   const g = grid();
   for (const key of Object.keys(GLOBAL)) g.append(button(`${GLOBAL[key].name} ${state.globals[key]}`, GLOBAL[key].detail, S.globalCost(state, key), () => act(S.buyGlobal(state, key))));
   panel.push(g);
@@ -346,8 +353,12 @@ function renderUi(force = false) {
   // Rebuild panels only when what they show has changed, so buttons don't flicker under a finger.
   const sel = selectedId && S.selectable(state, selectedId);
   if (selectedId && !sel) selectedId = null;
-  const signature = JSON.stringify([selectedId, placing, Math.floor(state.resonance), state.phase, state.globals, state.conductor.singCooldown > 0, sel && [sel.hp > 0, sel.linked, sel.dev, sel.level, sel.placed, sel.taken, sel.discovered], state.beings.map(b => b.placed + b.id)]);
-  if (!force && signature === uiSignature) return;
+  const signature = JSON.stringify([selectedId, placing, state.phase, state.globals, sel && [sel.hp > 0, sel.linked, sel.dev, sel.level, sel.placed, sel.taken, sel.discovered, sel.kind === 'being' && S.isCovered(state, sel)], state.beings.map(b => b.placed + b.id)]);
+  if (!force && signature === uiSignature) {
+    for (const b of $('panel').querySelectorAll('button[data-cost]')) b.classList.toggle('cant', state.resonance < Number(b.dataset.cost));
+    for (const el of $('panel').querySelectorAll('.live')) el.textContent = el.live();
+    return;
+  }
   uiSignature = signature;
 
   const roster = $('roster'); roster.replaceChildren();
