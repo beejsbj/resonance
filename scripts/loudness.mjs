@@ -32,7 +32,7 @@ function fixtures() {
       if (state.wave === 24) { manage(state); out.wave24Interlude = snap(state); }
     }
     if (state.phase === 'wave' && state.wave === 25 && !out.crisis25 && state.boss && state.enemies.length > 6) out.crisis25 = snap(state);
-    if (state.phase === 'wave' && state.wave === 26 && !out.wave26 && state.enemies.length > 12) out.wave26 = snap(state);
+    if (state.phase === 'wave' && state.wave === 26 && !out.wave26 && state.enemies.length >= 10) out.wave26 = snap(state);
     last = state.phase;
   }
   return out;
@@ -84,6 +84,10 @@ function installMeter(run) {
 const db = x => (x > 0 ? (20 * Math.log10(x)).toFixed(1) : '-inf').padStart(6);
 const summary = m => { const w = m.windows.slice().sort((a, b) => a - b); return { peak: m.peak, rms: Math.sqrt(m.sum / Math.max(1, m.n)), p50: w[Math.floor(w.length / 2)] || 0, p90: w[Math.floor(w.length * 0.9)] || 0, over: m.over }; };
 
+const WANTED = ['firstInterlude', 'firstWave', 'wave10Interlude', 'wave24Interlude', 'crisis25', 'wave26'];
+const runs = fixtures();
+const missing = WANTED.filter(k => !runs[k] && (!only.length || only.includes(k)));
+if (missing.length) console.log('The bot run did not reach: ' + missing.join(', ') + ' (placement is random; run again).');
 const { chromium } = await playwright();
 const server = await serve(path.resolve('public'));
 const url = `http://127.0.0.1:${server.address().port}/play/`;
@@ -91,7 +95,7 @@ const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gestur
 let clipped = false;
 console.log(`dBFS over ${seconds}s each; rms p50/p90 are 400 ms windows.`);
 console.log('scenario          where          voices | speaker  rms   p50   p90  peak clip | master   rms  peak');
-for (const [name, run] of Object.entries(fixtures())) {
+for (const [name, run] of Object.entries(runs)) {
   if (only.length && !only.includes(name)) continue;
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();

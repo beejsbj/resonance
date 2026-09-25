@@ -23,16 +23,19 @@ export function chordAt(bar) {
   return PROGRESSION[((bar % PROGRESSION.length) + PROGRESSION.length) % PROGRESSION.length];
 }
 
-// Each identity has its own way of reading the chord: its figure. `step` is the being's attack count.
+const mod = (n, m) => ((n % m) + m) % m;
+
+// Each identity has its own way of reading the chord: its figure. `step` is the being's attack count,
+// or any integer a sound borrows as one (a kill uses the threat's x, which is negative off the left edge).
 export function pitchFor(voice, bar, step, seed = 0) {
   const chord = chordAt(bar);
   const base = REGISTER[voice] ?? 0;
   let degree;
-  if (voice === 'pulse' || voice === 'drone') degree = chord[step % 2 === 0 ? 0 : 2];
-  else if (voice === 'bell') degree = chord[[2, 3, 1, 2][(step + seed) % 4]];
-  else if (voice === 'spark') degree = chord[(step + seed) % 4] + (step % 8 >= 4 ? 7 : 0);
-  else if (voice === 'thread') degree = chord[[0, 1, 2, 1, 3, 2, 1, 2][(step + seed) % 8]];
-  else degree = chord[(step + seed) % 3];
+  if (voice === 'pulse' || voice === 'drone') degree = chord[mod(step, 2) === 0 ? 0 : 2];
+  else if (voice === 'bell') degree = chord[[2, 3, 1, 2][mod(step + seed, 4)]];
+  else if (voice === 'spark') degree = chord[mod(step + seed, 4)] + (mod(step, 8) >= 4 ? 7 : 0);
+  else if (voice === 'thread') degree = chord[[0, 1, 2, 1, 3, 2, 1, 2][mod(step + seed, 8)]];
+  else degree = chord[mod(step + seed, 3)];
   return degreeToMidi(degree) + base;
 }
 

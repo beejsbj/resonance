@@ -186,3 +186,10 @@ test('a fallen run settles its echoes once, however often the fall screen opens'
   assert.equal(meta.echoes, first);
   assert.equal(meta.runs, 1);
 });
+
+test('every voice finds a pitch for any step, including the negative ones a kill off the left edge borrows', () => {
+  for (const voice of ['thread', 'pulse', 'bell', 'drone', 'spark', 'well', 'conductor']) {
+    for (let step = -40; step <= 40; step++) assert.ok(Number.isFinite(pitchFor(voice, 3, step, 2)), `${voice} step ${step}`);
+  }
+  for (let step = 0; step < 16; step++) assert.equal(pitchFor('spark', 1, step - 16), pitchFor('spark', 1, step), 'the figure repeats');
+});

@@ -106,7 +106,8 @@ function react(events) {
   for (const e of events) {
     const immediate = ['tap', 'strike', 'gust', 'accent', 'ward', 'placed', 'awakened', 'rebuilt', 'wellBuilt', 'developed', 'wellUp'].includes(e.type);
     stage.push(immediate ? { ...e, t: renderTime() } : e);
-    hear(e);
+    // A sound that cannot play must never stop the events after it (a defeat, a wave clear) from landing.
+    try { hear(e); } catch (err) { console.error('Resonance: could not sound', e.type, err); }
     switch (e.type) {
       case 'waveStart': banner(e.crisis ? 'Crisis · the Great Hush' : 'Wave ' + e.wave, true); break;
       case 'waveClear': toast('Wave ' + e.wave + ' resolved · +' + fmt(e.reward)); break;
