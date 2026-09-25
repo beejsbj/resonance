@@ -135,6 +135,8 @@ function act(result, quiet = false) {
 // ---------- clock ----------
 
 const renderTime = () => state.time - LATENCY;
+// The simulation time of the moment the player is hearing, so a tap is judged against the beat they heard.
+const heardTime = () => (sound.running ? sound.now - offset - sound.latency : renderTime());
 
 function frame() {
   requestAnimationFrame(frame);
@@ -179,7 +181,7 @@ canvas.addEventListener('pointerdown', e => {
   if (!started) return;
   canvas.setPointerCapture(e.pointerId);
   const p = stage.toWorld(e.clientX, e.clientY);
-  pointers.set(e.pointerId, { start: p, point: p, at: performance.now(), moved: false, holding: false });
+  pointers.set(e.pointerId, { start: p, point: p, at: performance.now(), heard: heardTime(), moved: false, holding: false });
   if (placing) ghost = ghostAt(p);
   if (state.paused) { state.paused = false; }
   setTimeout(() => {
@@ -203,7 +205,7 @@ const release = e => {
   if (placing) { tryPlace(p); return; }
   if (ptr.holding) return;
   if (ptr.moved) { act(S.swipe(state, ptr.start, p), true); return; }
-  const result = S.tap(state, p);
+  const result = S.tap(state, p, state.time - ptr.heard);
   if ('select' in result) { selectedId = result.select; }
   act(result, true);
   tutorial();

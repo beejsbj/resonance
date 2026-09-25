@@ -17,6 +17,8 @@ export class Sound {
 
   get now() { return this.ctx ? this.ctx.currentTime : performance.now() / 1000; }
   get running() { return !!this.ctx && this.ctx.state === 'running'; }
+  // Seconds from the audio clock to the listener's ears, as far as the platform reports it.
+  get latency() { return this.ctx ? (this.ctx.outputLatency || this.ctx.baseLatency || 0) : 0; }
 
   build() {
     const AC = window.AudioContext || window.webkitAudioContext;

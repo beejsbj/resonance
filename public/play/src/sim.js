@@ -306,17 +306,19 @@ function linkEvents(net) { return net.changed.map(c => ({ type: c.linked ? 'reco
 
 // ---------- conductor powers ----------
 
-function nearestBeat(state) {
+// `lag` is how long ago the moment being judged was: the beat a player hears left the simulation earlier.
+function nearestBeat(state, lag = 0) {
   const beat = beatSeconds(state);
-  const beatPos = (state.tick + state.tickPhase / tickSeconds(state)) / GRID;
+  const beatPos = (state.tick + state.tickPhase / tickSeconds(state)) / GRID - lag / beat;
   const nearest = Math.round(beatPos);
   return { nearest, error: Math.abs(beatPos - nearest) * beat, beat };
 }
 
-export function tap(state, p) {
+// `lag`: seconds between the moment the finger came down, in the time of what the player heard, and now.
+export function tap(state, p, lag = 0) {
   const events = [];
   state.stats.taps += 1;
-  const { nearest, error, beat } = nearestBeat(state);
+  const { nearest, error, beat } = nearestBeat(state, clamp(lag, 0, 0.5));
   const onBeat = error <= beat * 0.12 && state.conductor.lastBonusBeat !== nearest;
   if (onBeat) state.conductor.lastBonusBeat = nearest;
   const base = touchYield(state);

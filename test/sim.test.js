@@ -124,6 +124,14 @@ test('attack events land exactly on the sixteenth grid when linked', () => {
   for (const e of events) assert.ok(Math.abs(e.t / tick - Math.round(e.t / tick)) < 1e-6);
 });
 
+test('a tap is judged against the beat the player heard, not the simulation’s present', () => {
+  const state = run();
+  state.tick = GRID * 10; state.tickPhase = 0.1; // the beat sounded 100 ms ago in simulation time
+  assert.equal(S.tap(state, { x: 20, y: 20 }).events[0].onBeat, false);
+  state.tick = GRID * 20; state.tickPhase = 0.1;
+  assert.equal(S.tap(state, { x: 20, y: 20 }, 0.1).events[0].onBeat, true, 'a tap made 100 ms ago lands on that beat');
+});
+
 test('shelter drains the same power per second at any frame rate', () => {
   const drained = hz => {
     const state = run();

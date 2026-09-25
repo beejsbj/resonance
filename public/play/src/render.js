@@ -116,7 +116,9 @@ export class Stage {
     c.setTransform(s, 0, 0, s, this.ox * this.dpr + (Math.random() - 0.5) * jolt * this.dpr, this.oy * this.dpr + (Math.random() - 0.5) * jolt * this.dpr);
     for (const v of this.vib.values()) v.amp *= Math.pow(0.02, dt);
 
-    const beatPhase = ((state.tick % GRID) + state.tickPhase / tickSeconds(state)) / GRID;
+    // The pulse is drawn at renderTime, the moment being heard, like every other effect.
+    const ticksNow = state.tick + state.tickPhase / tickSeconds(state) - (state.time - renderTime) / tickSeconds(state);
+    const beatPhase = (((ticksNow % GRID) + GRID) % GRID) / GRID;
     const beatPulse = Math.pow(1 - beatPhase, 3);
     const t = performance.now() / 1000;
 
