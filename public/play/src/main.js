@@ -448,6 +448,6 @@ setInterval(() => { const b = S.bpm(state); if (b !== lastBpm) { lastBpm = b; so
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
-window.__resonance = { get state() { return state; }, S, stage };
+window.__resonance = { get state() { return state; }, S, stage, sound };
 renderUi(true);
 requestAnimationFrame(frame);
