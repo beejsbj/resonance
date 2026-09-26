@@ -28,7 +28,7 @@ On September 26, 2026, Burooj reported that this build plays great and chose it 
 | What persists after defeat? | Echoes buy five small head starts. The save also records identities met, but there is no player-facing codex yet. The base, roster, wells, and development reset. | `endRun`, `ECHOES` |
 | Roguelite variation | Motifs: after waves 3, 7, 12, 17, 23 and 30, choose one of three. An ignored offer resolves itself when the next wave begins, so idle play never stalls. | `MOTIFS`, `finishWave` |
 | Offline | Wells settle up to eight hours at their last connection state. Danger never advances. A wave interrupted by leaving waits paused, and the conductor waits with it: power and the Sing cooldown recover only between waves, so leaving is never a way to catch a breath mid-fight. | `settleAway`, `main.js` visibility handling |
-| Defeated crisis | The Great Hush becomes music: a new sleeping being appears where it fell. | `hurtBoss` |
+| Defeated crisis | The Great Hush becomes music: a new sleeping being appears near where it fell, clear of other selectable objects. If the arena is completely occupied, it joins the waiting roster directly. | `hurtBoss` |
 
 Rejected ideas stay rejected. There is no identity-changing upgrade ladder, no rhythm gate on income, and no offline danger.
 
@@ -42,7 +42,7 @@ Rejected ideas stay rejected. There is no identity-changing upgrade ladder, no r
 
 ## Working on it
 
-- Run the game: `cd public && python3 -m http.server`, then open `/play/`. On Vercel, `/` redirects to `/play/`. The prototype stays at `/prototype.html` and the workshop at `/workshop/`.
+- Run the game: `cd public && python3 -m http.server`, then open `/play/`. On Vercel, `/` redirects to `/play/`. The prototype stays at `/prototype.html` and the workshop is preserved on the [archive branch](https://github.com/beejsbj/resonance/tree/workshop).
 - Tests: `npm test`. The simulation is DOM-free, so its rules are tested directly.
 - Balance: `npm run balance`. Idle, managing, and active bots play whole runs and report how far each got. The numbers live in `public/play/src/content.js`.
 - Loudness: `npm run loudness`. Headless Chromium plays saved runs from the first interlude to a dense late wave and meters the speaker output; it fails if anything clips. Run it after changing voices, levels, or the mix. The mix lifts a small orchestra (`Sound.setVoices`) and a limiter guards the dense end.

@@ -28,9 +28,11 @@ Open `http://localhost:8000/play/`. The game uses browser ES modules without a b
 
 ## Design references
 
-The workshop at `/workshop/` is a reference map; the game runs independently of it. Its authored ideas are in [the map data](public/workshop/data.json), [genre research](docs/research/genre-foundations.md), and [economy comparison](docs/research/six-game-economy-comparison.md). [PR2](https://github.com/beejsbj/resonance/pull/2) separately preserves the extended consequence map and breach scenario.
+The [archived workshop branch](https://github.com/beejsbj/resonance/tree/workshop) preserves both workshop PRs: the original systems map and its consequence edges and breach scenario. Development now focuses on the game.
 
-Workshop annotations are stored in the browser where they were entered. Use the workshop's export button to preserve or share them; they are not automatically saved to Git or Linear.
+The authored ideas remain in [map data](https://github.com/beejsbj/resonance/blob/workshop/public/workshop/data.json), [genre research](https://github.com/beejsbj/resonance/blob/workshop/docs/research/genre-foundations.md), and [economy comparison](https://github.com/beejsbj/resonance/blob/workshop/docs/research/six-game-economy-comparison.md). To explore the archived interface, check out `workshop`, serve `public/`, and open `/workshop/`.
+
+Workshop annotations are stored in the browser where they were entered. Use the workshop's export button on that same browser and origin to preserve them; they are not automatically saved to Git or Linear.
 
 ## Prototype development
 
