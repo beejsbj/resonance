@@ -232,3 +232,37 @@ test('a crisis reward joins the waiting roster if no clear site remains', () => 
   assert.equal(state.beings.at(-1).placed, false);
   assert.equal(result.events.find(e => e.type === 'bossDown').recruited, true);
 });
+
+
+test('every rapid swipe echoes once on its own beat, including across save and pause', () => {
+  let state = run(); state.motifs.push('echoGust');
+  const first = { a: { x: 20, y: 100 }, b: { x: 100, y: 100 } };
+  const second = { a: { x: 20, y: 200 }, b: { x: 100, y: 200 } };
+  assert.equal(S.swipe(state, first.a, first.b).ok, true);
+  advance(state, 0.1, 0.1);
+  assert.equal(S.swipe(state, second.a, second.b).ok, true);
+  state = JSON.parse(JSON.stringify(state));
+  state.paused = true;
+  assert.deepEqual(advance(state, 1), []);
+  state.paused = false;
+  const echoes = advance(state, 1).filter(e => e.type === 'gust');
+  assert.equal(echoes.length, 2);
+  for (const [i, expected] of [first, second].entries()) {
+    assert.deepEqual(echoes[i].a, expected.a);
+    assert.deepEqual(echoes[i].b, expected.b);
+    assert.equal(echoes[i].strength, 0.5);
+    const scheduled = S.beatSeconds(state) + i * 0.1;
+    assert.ok(echoes[i].t >= scheduled && echoes[i].t - scheduled < 1 / 60 + 1e-9);
+  }
+  assert.equal(advance(state, 1).filter(e => e.type === 'gust').length, 0);
+});
+
+test('a legacy pending gust survives loading and a new swipe', () => {
+  const state = run(); state.motifs.push('echoGust');
+  state.gustEcho = { a: { x: 10, y: 10 }, b: { x: 100, y: 10 }, at: 0.1 };
+  S.swipe(state, { x: 10, y: 30 }, { x: 100, y: 30 });
+  const echoes = advance(state, 1).filter(e => e.type === 'gust');
+  assert.deepEqual(echoes.map(e => e.a.y), [10, 30]);
+  state.gustEcho = null;
+  assert.doesNotThrow(() => S.step(state, 0.1));
+});

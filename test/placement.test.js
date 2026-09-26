@@ -80,6 +80,48 @@ test('touch gestures scroll the roster, then select, tap-place, and drag-place b
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [begin] }, sessionId);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }, sessionId);
     await eventually(() => evaluate('document.querySelector("#curtain").hidden'), 'game start');
+    const coverage = await evaluate(`(() => {
+      const { stage, state } = window.__resonance;
+      const canvas = stage.canvas;
+      const bounds = canvas.getBoundingClientRect();
+      const ownBounds = Object.getOwnPropertyDescriptor(canvas, 'getBoundingClientRect');
+      const originalRelays = state.relays;
+      const originalCanvas = { width: canvas.width, height: canvas.height };
+      const rect = (width, height) => ({ left: bounds.left, top: bounds.top, right: bounds.left + width, bottom: bounds.top + height, width, height });
+      const mask = () => {
+        const { width, height } = stage.coverage;
+        const alpha = stage.coverage.getContext('2d').getImageData(0, 0, width, height).data;
+        return { width, height, nonzeroAlpha: alpha.some((value, index) => index % 4 === 3 && value > 0) };
+      };
+      const view = { placing: true };
+      try {
+        canvas.getBoundingClientRect = () => rect(300, 1000); // Width determines scale.
+        state.relays = [{ x: 240, y: 280, r: 80 }];
+        stage.resize();
+        stage.drawCoverage(stage.ctx, state, view);
+        const painted = mask();
+
+        stage.resize();
+        stage.drawCoverage(stage.ctx, state, view);
+        const sameBounds = mask();
+
+        canvas.getBoundingClientRect = () => rect(300, 1100);
+        stage.resize();
+        stage.drawCoverage(stage.ctx, state, view);
+        const heightOnly = mask();
+        return { painted, sameBounds, heightOnly };
+      } finally {
+        state.relays = originalRelays;
+        if (ownBounds) Object.defineProperty(canvas, 'getBoundingClientRect', ownBounds);
+        else delete canvas.getBoundingClientRect;
+        canvas.width = originalCanvas.width;
+        canvas.height = originalCanvas.height;
+        stage.resize();
+      }
+    })()`);
+    assert.equal(coverage.painted.nonzeroAlpha, true, 'coverage mask starts painted');
+    assert.deepEqual(coverage.sameBounds, coverage.painted, 'same-dimension resize repaints the cleared coverage mask');
+    assert.deepEqual(coverage.heightOnly, coverage.painted, 'height-only resize keeps the width-determined mask painted at the same dimensions');
     const dimensions = await evaluate(`(() => {
       const state = window.__resonance.state, pulse = state.beings.find(b => !b.placed);
       state.sites = []; // Keep random dormant sites out of the gesture targets.

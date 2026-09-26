@@ -73,7 +73,7 @@ export function newRun(meta, seed = (Date.now() >>> 0)) {
     globals: { touch: 0, tempo: 0, reach: 0, breath: 0 },
     echo: { ...e },
     conductor: { hp: CONDUCTOR.hp + 20 * (e.resolve || 0), maxHp: CONDUCTOR.hp + 20 * (e.resolve || 0), power: CONDUCTOR.power, chorus: 0, singCooldown: 0, ward: null, lastBonusBeat: -1 },
-    motifs: [], motifOffer: null, gustEcho: null,
+    motifs: [], motifOffer: null, gustEcho: [],
     sites: [], wells: [], beings: [], enemies: [], boss: null,
     phase: 'interlude', interlude: INTERLUDE.first, wave: 0, toSpawn: [], spawnClock: 0, fronts: [],
     paused: false, stats: { kills: 0, bosses: 0, taps: 0 },
@@ -385,11 +385,17 @@ function gust(state, a, b, strength, events) {
   events.push({ type: 'gust', t: state.time, a, b, strength, pushed });
 }
 
+function pendingGusts(state) {
+  // Preserve the one pending echo in saves written before the queue existed.
+  if (!Array.isArray(state.gustEcho)) state.gustEcho = state.gustEcho ? [state.gustEcho] : [];
+  return state.gustEcho;
+}
+
 export function swipe(state, a, b) {
   if (!spendPower(state, CONDUCTOR.gustCost)) return no('A gust needs ' + CONDUCTOR.gustCost + ' power.');
   const events = [];
   gust(state, a, b, 1, events);
-  if (has(state, 'echoGust')) state.gustEcho = { a, b, at: state.time + beatSeconds(state) };
+  if (has(state, 'echoGust')) pendingGusts(state).push({ a: { ...a }, b: { ...b }, at: state.time + beatSeconds(state) });
   return ok('', events);
 }
 
@@ -687,7 +693,12 @@ export function step(state, seconds) {
   c.chorus = Math.max(0, c.chorus - dt);
   c.singCooldown = Math.max(0, c.singCooldown - dt);
   if (c.ward && c.ward.until < state.time) c.ward = null;
-  if (state.gustEcho && state.time >= state.gustEcho.at) { gust(state, state.gustEcho.a, state.gustEcho.b, 0.5, events); state.gustEcho = null; }
+  const remainingGusts = [];
+  for (const echo of pendingGusts(state)) {
+    if (state.time >= echo.at) gust(state, echo.a, echo.b, 0.5, events);
+    else remainingGusts.push(echo);
+  }
+  state.gustEcho = remainingGusts;
 
   state.tickPhase += dt;
   const tickSec = tickSeconds(state);

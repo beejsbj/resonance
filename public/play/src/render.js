@@ -35,6 +35,7 @@ export class Stage {
     this.dpr = dpr;
     this.coverage.width = Math.ceil(W * this.scale * dpr);
     this.coverage.height = Math.ceil(H * this.scale * dpr);
+    this.coverageKey = undefined;
   }
 
   toWorld(clientX, clientY) {
