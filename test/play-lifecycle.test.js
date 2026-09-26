@@ -30,7 +30,7 @@ class Cdp {
   constructor(url) {
     this.ws = new WebSocket(url); this.next = 0; this.pending = new Map();
     this.ready = new Promise((resolve, reject) => { this.ws.onopen = resolve; this.ws.onerror = reject; });
-    this.ws.onmessage = e => { const m = JSON.parse(e.data); if (m.id) { const p = this.pending.get(m.id); this.pending.delete(m.id); m.error ? p.reject(new Error(m.error.message)) : p.resolve(m.result); } };
+    this.ws.onmessage = e => { const m = JSON.parse(e.data); if (m.id) { const p = this.pending.get(m.id); this.pending.delete(m.id); if (m.error) p.reject(new Error(m.error.message)); else p.resolve(m.result); } };
   }
   async send(method, params = {}, sessionId) {
     await this.ready;

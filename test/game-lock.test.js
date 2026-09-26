@@ -9,7 +9,7 @@ function locks() {
     if (held || !queue.length) return;
     held = true;
     const { callback, resolve, reject } = queue.shift();
-    Promise.resolve(callback()).then(resolve, reject).finally(() => { held = false; next(); });
+    void Promise.resolve(callback()).then(resolve, reject).finally(() => { held = false; next(); });
   };
   return { request(_name, _options, callback) { return new Promise((resolve, reject) => { queue.push({ callback, resolve, reject }); next(); }); } };
 }
