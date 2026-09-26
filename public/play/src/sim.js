@@ -701,7 +701,7 @@ export function step(state, seconds) {
 // whole, conductor included, so stepping away is never a way to catch a breath in a fight.
 export function settleAway(state, seconds) {
   const s = clamp(seconds, 0, OFFLINE_CAP);
-  if (state.phase === 'defeated' || s < 1) return 0;
+  if (state.phase === 'defeated') return 0;
   const earned = incomePerSecond({ ...state, conductor: { ...state.conductor, chorus: 0 } }) * s;
   earn(state, earned);
   const c = state.conductor;

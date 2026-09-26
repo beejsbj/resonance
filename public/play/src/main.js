@@ -4,15 +4,16 @@ import { W, BEINGS, DEVELOPMENTS, GLOBAL, ECHOES, MOTIFS, WELL, GRID, CONDUCTOR 
 import { Stage, fmt } from './render.js';
 import { Sound } from './audio.js';
 import { pitchFor } from './harmony.js';
+import { claimGameLock } from './game-lock.js';
 
 const RUN_KEY = 'resonance-run-v1';
 const META_KEY = 'resonance-meta-v1';
 const LATENCY = 0.06; // seconds between a beat in the simulation and its sound; visuals wait the same
 const $ = id => document.getElementById(id);
 
-const meta = loadMeta();
-let awayEarned = 0; // declared before loadRun(), which assigns it
-let state = loadRun();
+let meta;
+let awayEarned = 0;
+let state;
 let selectedId = null;
 let placing = null; // being id being placed
 let ghost = null;
@@ -21,6 +22,9 @@ let lastAudio = 0, lastPerf = performance.now();
 let offset = 0; // audio time = sim time + offset
 let hiddenAt = 0;
 let lastUi = 0;
+let ownsGame = false;
+let gameLock = null;
+let warnedStorage = false;
 
 const stage = new Stage($('stage'));
 const sound = new Sound();
@@ -45,11 +49,19 @@ function loadRun() {
   return S.newRun(meta);
 }
 function save() {
+  if (!ownsGame || !state) return false;
   try {
     // While hidden the run is not advancing, so its save is stamped at the moment it was left.
     localStorage.setItem(RUN_KEY, JSON.stringify({ savedAt: hiddenAt || Date.now(), state }, (k, v) => (k === 'relays' ? undefined : v)));
     localStorage.setItem(META_KEY, JSON.stringify(meta));
-  } catch { /* storage full or blocked: the run continues unsaved */ }
+    return true;
+  } catch {
+    if (!warnedStorage) {
+      warnedStorage = true;
+      banner('Progress cannot be saved on this device.', true);
+    }
+    return false;
+  }
 }
 
 // ---------- feedback ----------
@@ -150,32 +162,45 @@ function frame() {
   else dt = (perf - lastPerf) / 1000;
   lastPerf = perf;
   dt = Math.min(Math.max(dt, 0), 0.1);
-  if (started && !document.hidden) {
+  if (state && started && !document.hidden) {
     // Holding a ward drains power continuously.
     for (const p of pointers.values()) if (p.holding) { const r = S.hold(state, p.point, dt); if (!r.ok) p.holding = false; }
     react(S.step(state, dt));
     // Keep the audio clock and the simulation clock locked; resync after a stall.
     if (sound.running) { const target = sound.now - state.time + LATENCY; if (Math.abs(target - offset) > 0.04) offset = target; }
   }
-  stage.frame(state, { selectedId, ghost, placing: !!placing }, renderTime(), dt);
-  if (perf - lastUi > 200) { renderUi(); lastUi = perf; }
+  if (state) {
+    stage.frame(state, { selectedId, ghost, placing: !!placing }, renderTime(), dt);
+    if (perf - lastUi > 200) { renderUi(); lastUi = perf; }
+  }
 }
 
 document.addEventListener('visibilitychange', () => {
+  if (!state) return;
   if (document.hidden) { hiddenAt = Date.now(); save(); pointers.clear(); }
-  else if (hiddenAt) {
+  else if (hiddenAt && ownsGame) {
     const away = (Date.now() - hiddenAt) / 1000;
     hiddenAt = 0;
-    if (away > 5) {
+    if (away > 0) {
       const earned = S.settleAway(state, away);
       if (earned >= 1) toast('While you were away, the wells gathered +' + fmt(earned) + '.');
-      if (state.phase === 'wave') { state.paused = true; banner('The Hush waited for you'); }
+      if (away > 5 && state.phase === 'wave') { state.paused = true; banner('The Hush waited for you'); }
     }
     wakeSound();
     lastAudio = sound.now; lastPerf = performance.now();
   }
 });
 setInterval(save, 4000);
+
+window.addEventListener('pagehide', () => {
+  if (ownsGame) save();
+  ownsGame = false;
+  gameLock?.release();
+  gameLock = null;
+});
+window.addEventListener('pageshow', () => {
+  if (!ownsGame && !gameLock) requestGameLock();
+});
 
 // ---------- hands ----------
 
@@ -418,6 +443,7 @@ function renderShop() {
 }
 
 $('again').addEventListener('click', () => {
+  if (!ownsGame || !state) return;
   state = S.newRun(meta);
   selectedId = null; placing = null; ghost = null;
   stage.fx = []; stage.vib.clear();
@@ -427,6 +453,7 @@ $('again').addEventListener('click', () => {
 });
 
 $('begin').addEventListener('click', async () => {
+  if (!ownsGame || !state) return;
   try { await sound.start(); } catch { toast('Sound could not start here; the game runs silently.'); }
   lastAudio = sound.now; lastPerf = performance.now();
   offset = sound.now - state.time + LATENCY;
@@ -441,7 +468,7 @@ $('begin').addEventListener('click', async () => {
 });
 
 $('sound').addEventListener('click', () => { sound.setMuted(!sound.muted); $('sound').setAttribute('aria-pressed', String(sound.muted)); });
-$('pause').addEventListener('click', () => { state.paused = !state.paused; renderUi(true); });
+$('pause').addEventListener('click', () => { if (ownsGame && state) { state.paused = !state.paused; renderUi(true); } });
 
 // ---------- first performance ----------
 
@@ -454,6 +481,7 @@ const LESSONS = [
   { text: 'Swipe to push the Hush back. Hold a finger down to shelter what is under it.', done: () => state.wave >= 3 },
 ];
 function tutorial() {
+  if (!state) return;
   const hint = $('hint');
   while (meta.tutorial < LESSONS.length && LESSONS[meta.tutorial].done()) meta.tutorial++;
   if (meta.tutorial >= LESSONS.length || meta.runs > 0) { hint.hidden = true; return; }
@@ -461,15 +489,51 @@ function tutorial() {
 }
 setInterval(tutorial, 1000);
 
-if (awayEarned >= 1) $('curtain-text').textContent = 'Welcome back. While you were away the wells gathered +' + fmt(awayEarned) + ' Resonance. The Hush waited.';
-else if (meta.runs > 0 || state.wave > 0) $('curtain-text').textContent = 'The orchestra is where you left it.';
-$('begin').textContent = state.wave > 0 || awayEarned > 0 ? 'Return' : 'Begin';
-
-let lastBpm = S.bpm(state);
-setInterval(() => { const b = S.bpm(state); if (b !== lastBpm) { lastBpm = b; sound.setTempo(b); } }, 500);
+let lastBpm = 0;
+setInterval(() => {
+  if (!state) return;
+  const b = S.bpm(state); if (b !== lastBpm) { lastBpm = b; sound.setTempo(b); }
+}, 500);
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
-window.__resonance = { get state() { return state; }, S, stage, sound };
-renderUi(true);
+window.__resonance = { get state() { return state; }, get ownsGame() { return ownsGame; }, S, stage, sound };
 requestAnimationFrame(frame);
+
+function waitingForGame(text, disabled = true) {
+  $('curtain').hidden = false;
+  $('curtain-text').textContent = text;
+  $('begin').textContent = disabled ? 'Waiting for the other tab' : 'Begin';
+  $('begin').disabled = disabled;
+}
+
+function activateGame() {
+  // This happens inside the lock callback: the state is always the latest one
+  // written by the prior owner, never a snapshot from while this tab waited.
+  ownsGame = true;
+  warnedStorage = false;
+  awayEarned = 0;
+  meta = loadMeta();
+  state = loadRun();
+  hiddenAt = 0;
+  selectedId = null; placing = null; ghost = null;
+  lastBpm = S.bpm(state);
+  if (awayEarned >= 1) $('curtain-text').textContent = 'Welcome back. While you were away the wells gathered +' + fmt(awayEarned) + ' Resonance. The Hush waited.';
+  else if (meta.runs > 0 || state.wave > 0) $('curtain-text').textContent = 'The orchestra is where you left it.';
+  else $('curtain-text').textContent = 'The world has gone quiet. You are its conductor: gather what still sings, wake the beings that sleep in it, and hold the Hush back with music.';
+  $('begin').textContent = state.wave > 0 || awayEarned > 0 ? 'Return' : 'Begin';
+  $('begin').disabled = false;
+  renderUi(true);
+}
+
+function requestGameLock() {
+  gameLock = claimGameLock({
+    locks: navigator.locks,
+    onWaiting: () => waitingForGame('Another Resonance tab is playing. This tab will load the latest performance when it closes.'),
+    onOwner: activateGame,
+    onUnavailable: () => waitingForGame('This browser cannot safely keep one active performance. Open Resonance in a browser with Web Locks to protect your progress.'),
+    onError: () => waitingForGame('Resonance could not protect this performance. Close other tabs and reload.'),
+  });
+}
+
+requestGameLock();

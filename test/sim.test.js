@@ -105,6 +105,18 @@ test('waves start on their own, and time away advances wells but not danger', ()
   assert.equal(JSON.stringify(state.enemies), enemies);
 });
 
+test('a positive short absence settles production without advancing danger', () => {
+  const state = run();
+  advance(state, 40);
+  const enemies = JSON.stringify(state.enemies);
+  state.wells.push({ id: 'w-short', x: 10, y: 10, level: 2, hp: 40, maxHp: 40, linked: true, invested: 0 });
+  const before = state.resonance;
+  const earned = S.settleAway(state, 0.25);
+  assert.ok(earned > 0);
+  assert.ok(Math.abs(state.resonance - before - earned) < 1e-9);
+  assert.equal(JSON.stringify(state.enemies), enemies);
+});
+
 test('an unattended run eventually falls, and ends with echoes', () => {
   const state = run();
   let guard = 0;
