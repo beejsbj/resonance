@@ -1,3 +1,13 @@
+# Archived workshop reference
+
+This branch preserves [PR1](https://github.com/beejsbj/resonance/pull/1), the original systems workshop, and [PR2](https://github.com/beejsbj/resonance/pull/2), its consequence edges and breach scenario. Workshop development stopped on September 26, 2026. Continue game development on [main](https://github.com/beejsbj/resonance/tree/main).
+
+The authored ideas are intact in [the map](public/workshop/data.json), [genre research](docs/research/genre-foundations.md), and [economy comparison](docs/research/six-game-economy-comparison.md). Serve `public/` with `python3 -m http.server --directory public` and open `/workshop/` to explore the interface. Personal annotations remain in the browser and origin where they were entered; export them there to preserve them outside that browser.
+
+This is historical material. Some gathering recommendations and confirmed/proposed labels predate settled decisions. A selected alternative connection may be absent from the diagram; edge paths lack keyboard activation, though inspector buttons offer another route. The independent [PR1 review](https://github.com/beejsbj/resonance/pull/1#pullrequestreview-5327375287) and [PR2 review](https://github.com/beejsbj/resonance/pull/2#pullrequestreview-5327375388) document those limitations. Use the product brief, context, and game build docs on main for current direction.
+
+---
+
 # Resonance
 
 Resonance is a portrait Android game concept joining incremental mining and base growth, an autonomous defensive orchestra, active conductor support, and roguelite survival into one generative musical system.
