@@ -38,3 +38,19 @@ test('a browser without Web Locks never grants saving authority', async () => {
   assert.equal(unavailable, true);
   assert.equal(owner, false);
 });
+
+test('releasing while activation is pending lets the next tab acquire the lock', { timeout: 1000 }, async () => {
+  const nativeLocks = locks();
+  let finishActivation;
+  const activation = new Promise(resolve => { finishActivation = resolve; });
+  const first = claimGameLock({ locks: nativeLocks, onOwner: () => activation });
+  first.release();
+  let secondOwns = false;
+  const second = claimGameLock({ locks: nativeLocks, onOwner: () => { secondOwns = true; } });
+  finishActivation();
+  await first.done;
+  await Promise.resolve();
+  assert.equal(secondOwns, true);
+  second.release();
+  await second.done;
+});

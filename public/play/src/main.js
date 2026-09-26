@@ -195,6 +195,7 @@ setInterval(save, 4000);
 window.addEventListener('pagehide', () => {
   if (ownsGame) save();
   ownsGame = false;
+  suspendGame();
   gameLock?.release();
   gameLock = null;
 });
@@ -455,6 +456,7 @@ $('again').addEventListener('click', () => {
 $('begin').addEventListener('click', async () => {
   if (!ownsGame || !state) return;
   try { await sound.start(); } catch { toast('Sound could not start here; the game runs silently.'); }
+  if (!ownsGame || !state) return;
   lastAudio = sound.now; lastPerf = performance.now();
   offset = sound.now - state.time + LATENCY;
   sound.setTempo(S.bpm(state));
@@ -500,7 +502,18 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.se
 window.__resonance = { get state() { return state; }, get ownsGame() { return ownsGame; }, S, stage, sound };
 requestAnimationFrame(frame);
 
+function suspendGame() {
+  started = false;
+  state = undefined;
+  meta = undefined;
+  pointers.clear();
+  if (sound.ctx) sound.ctx.suspend().catch(() => {});
+  $('fall').hidden = true;
+  $('motif').hidden = true;
+}
+
 function waitingForGame(text, disabled = true) {
+  suspendGame();
   $('curtain').hidden = false;
   $('curtain-text').textContent = text;
   $('begin').textContent = disabled ? 'Waiting for the other tab' : 'Begin';
@@ -515,7 +528,7 @@ function activateGame() {
   awayEarned = 0;
   meta = loadMeta();
   state = loadRun();
-  hiddenAt = 0;
+  hiddenAt = document.hidden ? Date.now() : 0;
   selectedId = null; placing = null; ghost = null;
   lastBpm = S.bpm(state);
   if (awayEarned >= 1) $('curtain-text').textContent = 'Welcome back. While you were away the wells gathered +' + fmt(awayEarned) + ' Resonance. The Hush waited.';
@@ -531,7 +544,7 @@ function requestGameLock() {
     locks: navigator.locks,
     onWaiting: () => waitingForGame('Another Resonance tab is playing. This tab will load the latest performance when it closes.'),
     onOwner: activateGame,
-    onUnavailable: () => waitingForGame('This browser cannot safely keep one active performance. Open Resonance in a browser with Web Locks to protect your progress.'),
+    onUnavailable: () => waitingForGame('This browser cannot protect saved progress across tabs. Open Resonance in an up-to-date browser over HTTPS or localhost.'),
     onError: () => waitingForGame('Resonance could not protect this performance. Close other tabs and reload.'),
   });
 }

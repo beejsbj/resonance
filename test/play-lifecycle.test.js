@@ -10,6 +10,9 @@ import os from 'node:os';
 const root = path.resolve('public');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml' };
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+const chromeBinary = [process.env.CHROME_BIN, '/opt/google/chrome/chrome', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  ...(process.env.PATH || '').split(path.delimiter).flatMap(dir => ['google-chrome', 'chromium', 'chromium-browser'].map(name => path.join(dir, name))),
+].find(file => { try { fs.accessSync(file, fs.constants.X_OK); return true; } catch { return false; } });
 
 function serve() {
   const server = http.createServer((req, res) => {
@@ -44,11 +47,11 @@ async function eventually(read, description) {
   throw new Error('Timed out waiting for ' + description);
 }
 
-test('the second tab waits, takes over fresh state, and settles a short absence once', { timeout: 30000 }, async () => {
+test('the second tab waits, takes over fresh state, and settles a short absence once', { timeout: 30000, skip: !chromeBinary && 'Set CHROME_BIN to run the browser regression' }, async () => {
   const profile = await mkdtemp(path.join(os.tmpdir(), 'resonance-chrome-'));
   const server = await serve();
   const port = server.address().port;
-  const chrome = spawn('/opt/google/chrome/chrome', ['--headless=new', '--no-sandbox', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
+  const chrome = spawn(chromeBinary, ['--headless=new', '--no-sandbox', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
   let cdp;
   try {
     const debugPort = Number((await eventually(async () => {
@@ -70,9 +73,12 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
     await eventually(() => evaluate(second, 'document.querySelector("#begin").disabled && !window.__resonance.state'), 'second tab waiting');
     await evaluate(first, 'window.__resonance.state.resonance = 777; document.querySelector("#panel button").click()');
     const expected = await evaluate(first, 'window.__resonance.state.resonance');
-    await cdp.send('Target.closeTarget', { targetId: first.targetId });
+    await evaluate(first, 'window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true }))');
     await eventually(() => evaluate(second, 'window.__resonance.ownsGame && window.__resonance.state && window.__resonance.state.resonance'), 'second tab takeover');
     assert.equal(await evaluate(second, 'window.__resonance.state.resonance'), expected, 'waiter loaded the owner\'s latest save');
+    await evaluate(first, 'window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }))');
+    assert.equal(await evaluate(first, '!window.__resonance.ownsGame && !window.__resonance.state && document.querySelector("#begin").disabled'), true, 'a restored page waits without retaining a stale run');
+    await cdp.send('Target.closeTarget', { targetId: first.targetId });
     const shortGap = await evaluate(second, `(() => {
       const s = window.__resonance.state, realNow = Date.now; let now = 1000; Date.now = () => now;
       s.phase = 'wave'; s.wells = [{ id: 'short-gap', x: 1, y: 1, level: 1, hp: 40, maxHp: 40, linked: true }];

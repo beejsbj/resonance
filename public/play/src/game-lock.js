@@ -10,11 +10,12 @@ export function claimGameLock({ locks, onWaiting, onOwner, onUnavailable, onErro
 
   let released = false;
   let unlock;
+  const releasedPromise = new Promise(resolve => { unlock = resolve; });
   onWaiting?.();
   const done = locks.request(GAME_LOCK, { mode: 'exclusive' }, async () => {
     if (released) return;
     await onOwner?.();
-    await new Promise(resolve => { unlock = resolve; });
+    await releasedPromise;
   }).catch(error => onError?.(error));
 
   return {
