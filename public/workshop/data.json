@@ -1,25 +1,678 @@
 {
-  "revision": "2026-09-11",
-  "systems": [
-    {"id":"world","title":"World & discovery","category":"Expansion","status":"Shaping","x":35,"y":55,"summary":"A landscape of dormant musical potential.","role":"Gives expansion destinations: resource sites and undiscovered instrument beings.","accepted":["Top-down, radial, pathless arena around a stationary conductor.","The fiction can be strange: amorphous musical beings, perhaps living notes.","Discovery does not fix a being’s eventual placement."],"questions":["Are resource sites and sleeping beings separate discoveries, sometimes co-located?","What reveals new territory?"],"source":"defense"},
-    {"id":"mining","title":"Mining & production","category":"Economy","status":"Shaping","x":350,"y":55,"summary":"Dedicated producers at world sites.","role":"The separate-mining proposal: invest in production that funds growth and creates locations worth defending.","accepted":["The idle incremental economy and purchased upgrades remain central.","Earlier direction put gathering structures at resource sites and allowed safe offline production."],"questions":["Keep mining as a distinct system, or source income from the orchestra?","Does production require proximity to the conductor pulse?","What does the output represent and what does it buy?"],"source":"defense"},
-    {"id":"income","title":"Income & spending","category":"Economy","status":"Confirmed core","x":665,"y":55,"summary":"Accumulate, choose, reinvest.","role":"Keeps a spendable balance and turns production into decisions about growth, defense and active power.","accepted":["Income and upgrades remain part of the idle incremental game.","Every ordinary conductor tap earns income; timing cannot gate that base income.","Paid rebuilding preserves musical development within the current run."],"questions":["One run currency or distinct spending pools?","Which upgrades improve production versus combat?","How do costs scale and what survives defeat?"],"source":"grammar"},
-    {"id":"roster","title":"Recruitment & inventory","category":"Expansion","status":"Shaping","x":35,"y":270,"summary":"Discover a being; make it available.","role":"Owns which musical beings are available, independently of where they are placed or how they develop.","accepted":["Recruitment, arrangement and musical development are distinct.","A discovered being can be placed away from where it was found."],"questions":["Inventory was proposed as the home for recruited beings: how is availability limited?","What does awakening require?","Does the collection persist after defeat?"],"source":"defense"},
-    {"id":"arrangement","title":"Arrangement & pulse","category":"Orchestra","status":"Confirmed core","x":350,"y":270,"summary":"Place voices; extend coordination.","role":"Owns placement, proximity connections, and relationships among active instruments.","accepted":["Nearby entities carry the conductor’s pulse farther through proximity.","Instrument placement is free rather than fixed to discovery sites."],"questions":["Which entities relay the pulse and how far?","What happens when a connecting entity is destroyed?","What exactly does an isolated, chaotic instrument do?"],"source":"defense"},
-    {"id":"development","title":"Musical development","category":"Orchestra","status":"Confirmed core","x":665,"y":270,"summary":"Develop the voice, retain its identity.","role":"Changes how an existing instrument performs and fights; remains distinct from adding another being.","accepted":["An instrument does not upgrade into a different instrument.","Acoustic and electric identities are parallel possibilities.","Development may use rhythm, phase, pitch, register, harmony, dynamics and articulation."],"questions":["Which changes belong to an instrument, the arrangement, the conductor, or the whole orchestra?","Which developments are purchased, chosen during runs, or permanent?"],"source":"grammar"},
-    {"id":"conductor","title":"Conductor & touch","category":"Live play","status":"Confirmed core","x":35,"y":485,"summary":"Earn, attack, support, coordinate.","role":"Owns player interventions, separate from automatic instrument actions.","accepted":["Taps directly attack and damage enemies, as well as earn income.","Tap, swipe, hold and voice are conductor inputs.","The conductor is stationary at the center and is the protected object."],"questions":["How do taps target enemies and nearby allies?","What constrains attack rate and other powers?","How do active upgrades stay valuable beside growing automation?"],"source":"defense"},
-    {"id":"combat","title":"Automatic defense","category":"Live play","status":"Confirmed core","x":350,"y":485,"summary":"Instrument performances are attacks.","role":"Resolves automatic attacks, targeting, damage, destruction and rebuilding.","accepted":["Instrument towers defend automatically and their attacks create music.","Instruments and structures can be damaged or destroyed.","Rebuilding preserves development during the current run."],"questions":["What are the instrument roles and enemy matchups?","What damage and repair rules keep losses recoverable?","Do performers sound when no valid enemy target exists?"],"source":"defense"},
-    {"id":"opposition","title":"Enemies & crises","category":"Live play","status":"Confirmed core","x":665,"y":485,"summary":"Escalating pressure from all sides.","role":"Provides threats that test the growing base, arrangement and conductor.","accepted":["Enemies approach from all directions.","Ordinary play can be enjoyed without constant input.","Crises benefit substantially from live conductor support.","Runs escalate until defeat."],"questions":["How are waves started and paced?","What makes a crisis distinct from an ordinary wave?","What happens when the player leaves during a crisis?"],"source":"defense"},
-    {"id":"music","title":"Shared musical system","category":"Across systems","status":"Confirmed core","x":35,"y":700,"summary":"One beat; many voices and roles.","role":"Provides the global beat and makes gathering, conducting and instrument actions part of one musical world.","accepted":["A shared global beat anchors economy and instrument actions.","Music can be intentionally dense and maximalist.","The music comes from gameplay, including instrument attacks."],"questions":["How is harmony maintained while voices change?","Which events create sound, and which only change future performance?","How do large numerical upgrades remain audible without endless speed or density?"],"source":"grammar"},
-    {"id":"offline","title":"Offline progression","category":"Across systems","status":"Confirmed core","x":350,"y":700,"summary":"Production continues; danger does not.","role":"Accounts for time away without simulating destructive combat.","accepted":["Offline time may advance production.","Offline time cannot advance danger or destroy the orchestra."],"questions":["What production rate and cap apply while away?","Does awakening also advance offline?","How does a paused crisis resume?"],"source":"map"},
-    {"id":"run","title":"Run & permanent growth","category":"Across systems","status":"Open boundary","x":665,"y":700,"summary":"What resets; what carries forward?", "role":"Separates one escalating performance from the player’s longer progression.","accepted":["Runs escalate until the conductor falls.","Permanent progression may unlock possibilities."],"questions":["Do roster, base, currency and techniques persist or reset?","How does idle compounding coexist with meaningful run variation?","What exactly is recovered after defeat?"],"source":"map"}
-  ],
-  "edges":[
-    ["world","mining","Resource sites","proposal"],["world","roster","Discover beings","proposal"],["mining","income","Passive production","proposal"],["income","mining","Production upgrades","proposal"],["income","development","Purchase upgrades","confirmed"],["income","conductor","Develop powers","proposal"],["roster","arrangement","Available beings → placement","proposal"],["conductor","arrangement","Origin of the pulse","confirmed"],["arrangement","combat","Active orchestra","confirmed"],["development","combat","Performance changes","confirmed"],["conductor","combat","Direct attacks + support","confirmed"],["conductor","income","Tap income","confirmed"],["opposition","combat","Targets and pressure","confirmed"],["combat","mining","Protect producers","proposal"],["combat","music","Attacks become sound","confirmed"],["music","mining","Shared beat","confirmed"],["music","combat","Shared beat","confirmed"],["offline","mining","Time-away production","confirmed"],["opposition","run","Defeat ends performance","confirmed"],["run","roster","Persistence boundary","open"],["run","income","Reset boundary","open"],["arrangement","income","Alternative: performance income","alternative"]
-  ],
-  "sources":{
-    "map":{"title":"Create a musical incremental orchestra-defense game for Android","url":"https://linear.app/bjs-projects/issue/BJS-417"},
-    "defense":{"title":"Define the orchestra-defense and radial-base domain","url":"https://linear.app/bjs-projects/issue/BJS-416"},
-    "grammar":{"title":"Define Resonance’s musical progression grammar","url":"https://linear.app/bjs-projects/issue/BJS-424"}
+ "revision": "2026-09-24",
+ "systems": [
+  {
+   "id": "world",
+   "title": "World & discovery",
+   "category": "Expansion",
+   "status": "Shaping",
+   "x": 35,
+   "y": 55,
+   "summary": "A landscape of dormant musical potential.",
+   "role": "Gives expansion destinations: resource sites and undiscovered instrument beings.",
+   "accepted": [
+    "Top-down, radial, pathless arena around a stationary conductor.",
+    "The fiction can be strange: amorphous musical beings, perhaps living notes.",
+    "Discovery does not fix a being’s eventual placement."
+   ],
+   "questions": [
+    "Are resource sites and sleeping beings separate discoveries, sometimes co-located?",
+    "What reveals new territory?"
+   ],
+   "source": "defense"
+  },
+  {
+   "id": "mining",
+   "title": "Mining & production",
+   "category": "Economy",
+   "status": "Shaping",
+   "x": 350,
+   "y": 55,
+   "summary": "Dedicated producers at world sites.",
+   "role": "The separate-mining proposal: invest in production that funds growth and creates locations worth defending.",
+   "accepted": [
+    "The idle incremental economy and purchased upgrades remain central.",
+    "Earlier direction put gathering structures at resource sites and allowed safe offline production."
+   ],
+   "questions": [
+    "Keep mining as a distinct system, or source income from the orchestra?",
+    "Does production require proximity to the conductor pulse?",
+    "What does the output represent and what does it buy?"
+   ],
+   "source": "defense"
+  },
+  {
+   "id": "income",
+   "title": "Income & spending",
+   "category": "Economy",
+   "status": "Confirmed core",
+   "x": 665,
+   "y": 55,
+   "summary": "Accumulate, choose, reinvest.",
+   "role": "Keeps a spendable balance and turns production into decisions about growth, defense and active power.",
+   "accepted": [
+    "Income and upgrades remain part of the idle incremental game.",
+    "Every ordinary conductor tap earns income; timing cannot gate that base income.",
+    "Paid rebuilding preserves musical development within the current run."
+   ],
+   "questions": [
+    "One run currency or distinct spending pools?",
+    "Which upgrades improve production versus combat?",
+    "How do costs scale and what survives defeat?"
+   ],
+   "source": "grammar"
+  },
+  {
+   "id": "roster",
+   "title": "Recruitment & inventory",
+   "category": "Expansion",
+   "status": "Shaping",
+   "x": 35,
+   "y": 270,
+   "summary": "Discover a being; make it available.",
+   "role": "Owns which musical beings are available, independently of where they are placed or how they develop.",
+   "accepted": [
+    "Recruitment, arrangement and musical development are distinct.",
+    "A discovered being can be placed away from where it was found."
+   ],
+   "questions": [
+    "Inventory was proposed as the home for recruited beings: how is availability limited?",
+    "What does awakening require?",
+    "Does the collection persist after defeat?"
+   ],
+   "source": "defense"
+  },
+  {
+   "id": "arrangement",
+   "title": "Arrangement & pulse",
+   "category": "Orchestra",
+   "status": "Confirmed core",
+   "x": 350,
+   "y": 270,
+   "summary": "Place voices; extend coordination.",
+   "role": "Owns placement, proximity connections, and relationships among active instruments.",
+   "accepted": [
+    "Nearby entities carry the conductor’s pulse farther through proximity.",
+    "Instrument placement is free rather than fixed to discovery sites."
+   ],
+   "questions": [
+    "Which entities relay the pulse and how far?",
+    "What happens to instruments and producers beyond a destroyed relay?",
+    "What exactly does an isolated, uncoordinated instrument do?"
+   ],
+   "source": "defense"
+  },
+  {
+   "id": "development",
+   "title": "Musical development",
+   "category": "Orchestra",
+   "status": "Confirmed core",
+   "x": 665,
+   "y": 270,
+   "summary": "Develop the voice, retain its identity.",
+   "role": "Changes how an existing instrument performs and fights; remains distinct from adding another being.",
+   "accepted": [
+    "An instrument does not upgrade into a different instrument.",
+    "Acoustic and electric identities are parallel possibilities.",
+    "Development may use rhythm, phase, pitch, register, harmony, dynamics and articulation."
+   ],
+   "questions": [
+    "Which changes belong to an instrument, the arrangement, the conductor, or the whole orchestra?",
+    "Which developments are purchased, chosen during runs, or permanent?"
+   ],
+   "source": "grammar"
+  },
+  {
+   "id": "conductor",
+   "title": "Conductor & touch",
+   "category": "Live play",
+   "status": "Confirmed core",
+   "x": 35,
+   "y": 485,
+   "summary": "Earn, attack, support, coordinate.",
+   "role": "Owns player interventions. Conductor taps strike enemies directly and support instruments; neither passes through the automatic orchestra.",
+   "accepted": [
+    "Taps directly attack and damage enemies, as well as earn income.",
+    "Supporting the orchestra (accenting an instrument) is a separate use of the same touch.",
+    "Tap, swipe, hold and voice are conductor inputs.",
+    "The conductor is stationary at the center and is the protected object."
+   ],
+   "questions": [
+    "How does one tap choose between striking an enemy and supporting a nearby instrument?",
+    "What constrains attack rate and other powers?",
+    "How do active upgrades stay valuable beside growing automation?"
+   ],
+   "source": "defense"
+  },
+  {
+   "id": "combat",
+   "title": "Automatic defense",
+   "category": "Live play",
+   "status": "Confirmed core",
+   "x": 350,
+   "y": 485,
+   "summary": "Instrument performances are attacks.",
+   "role": "Resolves the orchestra’s automatic attacks, damage to instruments, destruction and rebuilding. Conductor attacks are resolved by the conductor, not here.",
+   "accepted": [
+    "Instrument towers defend automatically and their attacks create music.",
+    "Instruments and structures can be damaged or destroyed.",
+    "Rebuilding preserves development during the current run."
+   ],
+   "questions": [
+    "What are the instrument roles and enemy matchups?",
+    "What damage and repair rules keep losses recoverable?",
+    "Do performers sound when no valid enemy target exists?"
+   ],
+   "source": "defense"
+  },
+  {
+   "id": "opposition",
+   "title": "Enemies & crises",
+   "category": "Live play",
+   "status": "Confirmed core",
+   "x": 665,
+   "y": 485,
+   "summary": "Escalating pressure from all sides.",
+   "role": "Provides threats that test the growing base, arrangement and conductor.",
+   "accepted": [
+    "Enemies approach from all directions.",
+    "Ordinary play can be enjoyed without constant input.",
+    "Crises benefit substantially from live conductor support.",
+    "Runs escalate until defeat."
+   ],
+   "questions": [
+    "How are waves started and paced?",
+    "What makes a crisis distinct from an ordinary wave?",
+    "What happens when the player leaves during a crisis?"
+   ],
+   "source": "defense"
+  },
+  {
+   "id": "music",
+   "title": "Shared musical system",
+   "category": "Across systems",
+   "status": "Confirmed core",
+   "x": 35,
+   "y": 700,
+   "summary": "One beat; many voices and roles.",
+   "role": "Provides the global beat and makes gathering, conducting and instrument actions part of one musical world.",
+   "accepted": [
+    "A shared global beat anchors economy and instrument actions.",
+    "Music can be intentionally dense and maximalist.",
+    "The music comes from gameplay, including instrument attacks."
+   ],
+   "questions": [
+    "How is harmony maintained while voices change?",
+    "Which events create sound, and which only change future performance?",
+    "How do large numerical upgrades remain audible without endless speed or density?"
+   ],
+   "source": "grammar"
+  },
+  {
+   "id": "offline",
+   "title": "Offline progression",
+   "category": "Across systems",
+   "status": "Confirmed core",
+   "x": 350,
+   "y": 700,
+   "summary": "Production continues; danger does not.",
+   "role": "Accounts for time away without simulating destructive combat.",
+   "accepted": [
+    "Offline time may advance production.",
+    "Offline time cannot advance danger or destroy the orchestra."
+   ],
+   "questions": [
+    "What production rate and cap apply while away?",
+    "Does awakening also advance offline?",
+    "How does a paused crisis resume?"
+   ],
+   "source": "map"
+  },
+  {
+   "id": "run",
+   "title": "Run & permanent growth",
+   "category": "Across systems",
+   "status": "Open boundary",
+   "x": 665,
+   "y": 700,
+   "summary": "What resets; what carries forward?",
+   "role": "Separates one escalating performance from the player’s longer progression.",
+   "accepted": [
+    "Runs escalate until the conductor falls.",
+    "Permanent progression may unlock possibilities."
+   ],
+   "questions": [
+    "Do roster, base, currency and techniques persist or reset?",
+    "How does idle compounding coexist with meaningful run variation?",
+    "What exactly is recovered after defeat?"
+   ],
+   "source": "map"
   }
+ ],
+ "edges": [
+  {
+   "id": "resource-sites",
+   "from": "world",
+   "to": "mining",
+   "label": "Resource sites",
+   "status": "proposal",
+   "trigger": "The pulse reaches a site of dormant musical potential.",
+   "effect": "A producer can be placed on that site.",
+   "source": "defense",
+   "questions": [
+    "What reveals new territory?"
+   ]
+  },
+  {
+   "id": "discover-beings",
+   "from": "world",
+   "to": "roster",
+   "label": "Discover beings",
+   "status": "proposal",
+   "trigger": "The pulse reaches a sleeping musical being.",
+   "effect": "Awakening it makes the being available to recruit.",
+   "source": "defense",
+   "questions": [
+    "Are resource sites and sleeping beings separate discoveries?"
+   ]
+  },
+  {
+   "id": "passive-production",
+   "from": "mining",
+   "to": "income",
+   "label": "Passive production",
+   "status": "proposal",
+   "trigger": "A producer completes its division of the global beat.",
+   "effect": "Resonance is added to the balance, including while away.",
+   "source": "defense",
+   "evidence": "Prototype 03: mines pay out on the beat."
+  },
+  {
+   "id": "production-upgrades",
+   "from": "income",
+   "to": "mining",
+   "label": "Production upgrades",
+   "status": "proposal",
+   "trigger": "The player spends on a producer.",
+   "effect": "That producer yields more per payout.",
+   "source": "defense"
+  },
+  {
+   "id": "purchase-upgrades",
+   "from": "income",
+   "to": "development",
+   "label": "Purchase upgrades",
+   "status": "confirmed",
+   "trigger": "The player spends on an instrument’s technique.",
+   "effect": "The instrument develops without becoming another instrument.",
+   "source": "grammar",
+   "evidence": "Prototype 03: mastery, subdivision and octave doubling."
+  },
+  {
+   "id": "pay-to-rebuild",
+   "from": "income",
+   "to": "combat",
+   "label": "Pay to rebuild",
+   "status": "confirmed",
+   "trigger": "An instrument has been destroyed.",
+   "effect": "Spending returns it with its musical development intact for this run. Every rebuild is Resonance not spent on growth, so recovery competes with upgrades.",
+   "source": "defense",
+   "questions": [
+    "How does rebuild cost scale, and is return instant or delayed?",
+    "Does a recent loss discount repair, or does it cost the same whenever?"
+   ],
+   "evidence": "Prototype 03: rebuilding costs 40% of what was invested in the structure."
+  },
+  {
+   "id": "develop-powers",
+   "from": "income",
+   "to": "conductor",
+   "label": "Develop powers",
+   "status": "proposal",
+   "trigger": "The player spends on the conductor.",
+   "effect": "Touch yield or conductor powers improve.",
+   "source": "defense",
+   "evidence": "Prototype 03: touch development raises tap income."
+  },
+  {
+   "id": "placement",
+   "from": "roster",
+   "to": "arrangement",
+   "label": "Available beings → placement",
+   "status": "proposal",
+   "trigger": "The player places a recruited being.",
+   "effect": "It joins the active orchestra at a chosen position.",
+   "source": "defense"
+  },
+  {
+   "id": "pulse-origin",
+   "from": "conductor",
+   "to": "arrangement",
+   "label": "Origin of the pulse",
+   "status": "confirmed",
+   "trigger": "Always, on the global beat.",
+   "effect": "The conductor’s pulse spreads outward through nearby entities.",
+   "source": "defense",
+   "questions": [
+    "Which entities relay the pulse, and how far?"
+   ]
+  },
+  {
+   "id": "active-orchestra",
+   "from": "arrangement",
+   "to": "combat",
+   "label": "Active orchestra",
+   "status": "confirmed",
+   "trigger": "An instrument is placed and connected.",
+   "effect": "It attacks automatically from its position.",
+   "source": "defense"
+  },
+  {
+   "id": "performance-changes",
+   "from": "development",
+   "to": "combat",
+   "label": "Performance changes",
+   "status": "confirmed",
+   "trigger": "An instrument develops.",
+   "effect": "Its attacks change: cadence, reach or strength.",
+   "source": "grammar",
+   "evidence": "Prototype 03: subdivision changes attack cadence; octave doubling adds damage."
+  },
+  {
+   "id": "tap-attacks",
+   "from": "conductor",
+   "to": "opposition",
+   "label": "Direct tap attacks",
+   "status": "confirmed",
+   "trigger": "The player taps an enemy.",
+   "effect": "The conductor damages it directly, without an instrument between them.",
+   "source": "defense",
+   "questions": [
+    "How are enemies targeted by touch?",
+    "What limits attack rate?"
+   ],
+   "evidence": "Not yet in Prototype 03: its taps earn income and accent structures but never damage enemies."
+  },
+  {
+   "id": "support",
+   "from": "conductor",
+   "to": "combat",
+   "label": "Support: accent an instrument",
+   "status": "confirmed",
+   "trigger": "The player taps near an instrument and has enough conductor power.",
+   "effect": "That instrument’s next attacks carry the accent. This is support, separate from direct attacks.",
+   "source": "defense",
+   "questions": [
+    "Is support the same tap aimed differently, or a different gesture?"
+   ],
+   "evidence": "Prototype 03: aimed taps spend conductor power to accent a structure."
+  },
+  {
+   "id": "tap-income",
+   "from": "conductor",
+   "to": "income",
+   "label": "Tap income",
+   "status": "confirmed",
+   "trigger": "Any ordinary tap.",
+   "effect": "Earns Resonance. Timing may add a capped bonus, but income never depends on timing.",
+   "source": "grammar",
+   "evidence": "Prototype 03: every tap earns; a near-beat tap earns one capped bonus per beat."
+  },
+  {
+   "id": "pressure",
+   "from": "opposition",
+   "to": "combat",
+   "label": "Targets and pressure",
+   "status": "confirmed",
+   "trigger": "Enemies reach the orchestra.",
+   "effect": "They are targeted, and they damage or destroy instruments.",
+   "source": "defense"
+  },
+  {
+   "id": "protect-producers",
+   "from": "combat",
+   "to": "mining",
+   "label": "Protect producers",
+   "status": "proposal",
+   "trigger": "Enemies approach a producer.",
+   "effect": "Nearby instruments defend the base’s income.",
+   "source": "defense"
+  },
+  {
+   "id": "attacks-sound",
+   "from": "combat",
+   "to": "music",
+   "label": "Attacks sound; losses fall silent",
+   "status": "confirmed",
+   "trigger": "An instrument attacks, or is destroyed.",
+   "effect": "Its attack is a note. A destroyed instrument’s voice is absent until it is rebuilt.",
+   "source": "defense",
+   "questions": [
+    "Do performers sound when no valid target exists?"
+   ],
+   "evidence": "Prototype 03: a destroyed structure falls silent until rebuilt."
+  },
+  {
+   "id": "breaks-pulse",
+   "from": "combat",
+   "to": "arrangement",
+   "label": "Destruction breaks the pulse",
+   "status": "proposal",
+   "trigger": "A destroyed instrument was relaying the pulse.",
+   "effect": "Recommendation: entities beyond it keep acting but lose coordination. Rebuilding or rerouting reconnects them.",
+   "source": "defense",
+   "questions": [
+    "What does lost coordination sound and look like?",
+    "Does a gap cut off everything beyond it, or only weaken it?"
+   ]
+  },
+  {
+   "id": "pulse-reach",
+   "from": "arrangement",
+   "to": "mining",
+   "label": "Pulse reaches producers",
+   "status": "proposal",
+   "trigger": "A producer is connected, or is disconnected.",
+   "effect": "Recommendation: a disconnected producer slows but keeps its stored income; reconnecting restores its rate.",
+   "source": "defense",
+   "questions": [
+    "Does connection enable production, or only improve it?"
+   ]
+  },
+  {
+   "id": "development-sound",
+   "from": "development",
+   "to": "music",
+   "label": "Development changes the sound",
+   "status": "confirmed",
+   "trigger": "An instrument develops.",
+   "effect": "The change is audible: subdivision changes its rhythm, octave doubling adds pitches in the same voice.",
+   "source": "grammar",
+   "questions": [
+    "Which pitch, harmony, phase and articulation changes replace the small shared set?"
+   ],
+   "evidence": "Prototype 03: subdivision and octave doubling are audible."
+  },
+  {
+   "id": "arrangement-sound",
+   "from": "arrangement",
+   "to": "music",
+   "label": "Placement shapes the music",
+   "status": "open",
+   "trigger": "Instruments are placed near one another or apart.",
+   "effect": "Undecided: whether position affects entrances, register, doubling or harmony.",
+   "source": "grammar",
+   "questions": [
+    "Does placement change the sound, or only the defense?"
+   ]
+  },
+  {
+   "id": "beat-mining",
+   "from": "music",
+   "to": "mining",
+   "label": "Shared beat",
+   "status": "confirmed",
+   "trigger": "Each division of the global beat.",
+   "effect": "Producers pay out on the beat.",
+   "source": "grammar"
+  },
+  {
+   "id": "beat-combat",
+   "from": "music",
+   "to": "combat",
+   "label": "Shared beat",
+   "status": "confirmed",
+   "trigger": "Each division of the global beat.",
+   "effect": "Instruments attack on their division of the beat.",
+   "source": "grammar"
+  },
+  {
+   "id": "away-production",
+   "from": "offline",
+   "to": "mining",
+   "label": "Time-away production",
+   "status": "confirmed",
+   "trigger": "The player leaves.",
+   "effect": "Producers keep producing.",
+   "source": "map",
+   "questions": [
+    "What rate and cap apply while away?"
+   ],
+   "evidence": "Prototype 03: mines settle away time on return."
+  },
+  {
+   "id": "away-danger",
+   "from": "offline",
+   "to": "opposition",
+   "label": "Danger waits",
+   "status": "confirmed",
+   "trigger": "The player leaves.",
+   "effect": "Enemies do not advance and nothing is destroyed.",
+   "source": "map",
+   "questions": [
+    "How does a paused crisis resume?"
+   ],
+   "evidence": "Prototype 03: away time advances mining without advancing danger."
+  },
+  {
+   "id": "defeat",
+   "from": "opposition",
+   "to": "run",
+   "label": "Defeat ends performance",
+   "status": "confirmed",
+   "trigger": "The conductor falls.",
+   "effect": "The run ends.",
+   "source": "map"
+  },
+  {
+   "id": "persist-roster",
+   "from": "run",
+   "to": "roster",
+   "label": "Persistence boundary",
+   "status": "open",
+   "trigger": "A new run begins.",
+   "effect": "Undecided: whether the roster carries over.",
+   "source": "map"
+  },
+  {
+   "id": "reset-income",
+   "from": "run",
+   "to": "income",
+   "label": "Reset boundary",
+   "status": "open",
+   "trigger": "A new run begins.",
+   "effect": "Undecided: whether currency, base or upgrades carry over.",
+   "source": "map"
+  },
+  {
+   "id": "performance-income",
+   "from": "arrangement",
+   "to": "income",
+   "label": "Alternative: performance income",
+   "status": "alternative",
+   "trigger": "The orchestra plays.",
+   "effect": "Earlier alternative: playing produces income instead of separate mining.",
+   "source": "defense"
+  }
+ ],
+ "sources": {
+  "map": {
+   "title": "Create a musical incremental orchestra-defense game for Android",
+   "url": "https://linear.app/bjs-projects/issue/BJS-417"
+  },
+  "defense": {
+   "title": "Define the orchestra-defense and radial-base domain",
+   "url": "https://linear.app/bjs-projects/issue/BJS-416"
+  },
+  "grammar": {
+   "title": "Define Resonance’s musical progression grammar",
+   "url": "https://linear.app/bjs-projects/issue/BJS-424"
+  }
+ },
+ "scenarios": [
+  {
+   "id": "breach",
+   "title": "A breach at the outpost",
+   "steps": [
+    {
+     "title": "Extend the pulse",
+     "edges": [
+      "pulse-origin",
+      "resource-sites",
+      "pulse-reach"
+     ],
+     "text": "You place a being between the conductor and a second resource site. It relays the pulse, and a producer on the site comes online.",
+     "status": "proposal"
+    },
+    {
+     "title": "The outpost produces",
+     "edges": [
+      "beat-mining",
+      "passive-production"
+     ],
+     "text": "The new producer pays out on the global beat. Income rises, and there is now a place worth protecting.",
+     "status": "proposal"
+    },
+    {
+     "title": "An enemy breaks through",
+     "edges": [
+      "pressure",
+      "attacks-sound"
+     ],
+     "text": "The relay instrument is destroyed. Its voice drops out of the music immediately.",
+     "status": "confirmed"
+    },
+    {
+     "title": "The pulse breaks",
+     "edges": [
+      "breaks-pulse",
+      "pulse-reach"
+     ],
+     "text": "Everything beyond the gap is cut off. The recommendation: those instruments keep acting but lose coordination, and the producer slows but keeps its stored income.",
+     "status": "proposal",
+     "ask": "Is that what should happen when an outpost loses the pulse?"
+    },
+    {
+     "title": "The conductor answers",
+     "edges": [
+      "tap-attacks",
+      "support",
+      "tap-income"
+     ],
+     "text": "Taps strike the attacker directly, with no instrument involved. The same touches keep earning, and an aimed tap can accent a surviving instrument.",
+     "status": "confirmed"
+    },
+    {
+     "title": "Rebuild, or grow?",
+     "edges": [
+      "pay-to-rebuild",
+      "purchase-upgrades",
+      "production-upgrades"
+     ],
+     "text": "One balance, three claims. Rebuilding returns the relay with its development intact and reconnects the outpost. The same Resonance could buy development or production instead.",
+     "status": "confirmed"
+    }
+   ]
+  }
+ ]
 }
