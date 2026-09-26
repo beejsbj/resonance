@@ -64,7 +64,7 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
       const targetId = (await cdp.send('Target.createTarget', { url: 'about:blank' })).targetId;
       const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
       await cdp.send('Page.enable', {}, sessionId); await cdp.send('Runtime.enable', {}, sessionId);
-      if (seed) await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: seed }, sessionId);
+      await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `window.testNow = 1000000; Date.now = () => window.testNow; const interval = window.setInterval; window.setInterval = (fn, ms) => { if (ms === 4000) window.testAutosave = fn; return interval(fn, ms); };` + (seed || '') }, sessionId);
       await cdp.send('Page.navigate', { url: `http://127.0.0.1:${port}/play/` }, sessionId);
       return { targetId, sessionId };
     };
@@ -72,7 +72,7 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
     const legacyMeta = { ...S.newMeta(), echoes: 23 };
     const legacyRun = S.newRun(legacyMeta);
     legacyRun.resonance = 321;
-    const first = await tab(`localStorage.setItem('resonance-run-v1', ${JSON.stringify(JSON.stringify({ state: legacyRun, savedAt: Date.now() }))}); localStorage.setItem('resonance-meta-v1', ${JSON.stringify(JSON.stringify(legacyMeta))});`);
+    const first = await tab(`localStorage.setItem('resonance-run-v1', ${JSON.stringify(JSON.stringify({ state: legacyRun, savedAt: 1000000 }))}); localStorage.setItem('resonance-meta-v1', ${JSON.stringify(JSON.stringify(legacyMeta))});`);
     await eventually(() => evaluate(first, 'window.__resonance && window.__resonance.ownsGame'), 'first tab ownership');
     assert.equal(await evaluate(first, 'window.__resonance.state.resonance'), 321, 'legacy runs remain readable');
     const second = await tab();
@@ -88,12 +88,36 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
     await evaluate(first, 'window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }))');
     assert.equal(await evaluate(first, '!window.__resonance.ownsGame && !window.__resonance.state && document.querySelector("#begin").disabled'), true, 'a restored page waits without retaining a stale run');
     await cdp.send('Target.closeTarget', { targetId: first.targetId });
+    const curtain = await evaluate(second, `(() => {
+      const s = window.__resonance.state;
+      s.wells = [{ id: 'curtain-well', x: 180, y: 280, level: 1, hp: 40, maxHp: 40, linked: true }];
+      const before = s.resonance, rate = window.__resonance.S.incomePerSecond(s);
+      window.testNow += 12000; window.testAutosave();
+      window.testNow += 2000; window.testAutosave();
+      return { before, rate, savedAt: JSON.parse(localStorage.getItem('resonance-save-v1')).savedAt };
+    })()`);
+    assert.equal(curtain.savedAt, 1000000, 'autosaves preserve time waiting at the curtain');
+    await evaluate(second, 'window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true }))');
+    await evaluate(second, 'window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }))');
+    await eventually(() => evaluate(second, 'window.__resonance.ownsGame'), 'curtain reload ownership');
+    assert.ok(Math.abs(await evaluate(second, 'window.__resonance.state.resonance') - curtain.before - curtain.rate * 14) < 1e-9, 'reloading pays the entire curtain interval once');
+    const begin = await evaluate(second, `(async () => {
+      const s = window.__resonance.state, before = s.resonance, danger = JSON.stringify(s.enemies);
+      window.testNow += 6000;
+      window.__resonance.sound.start = async () => {};
+      document.querySelector('#begin').click(); await Promise.resolve();
+      window.testAutosave();
+      return { earned: s.resonance - before, danger, after: JSON.stringify(s.enemies), savedAt: JSON.parse(localStorage.getItem('resonance-save-v1')).savedAt };
+    })()`);
+    assert.ok(Math.abs(begin.earned - curtain.rate * 6) < 1e-9, 'Begin settles only the remaining curtain time');
+    assert.equal(begin.danger, begin.after, 'curtain time does not advance danger');
+    assert.equal(begin.savedAt, 1020000, 'after Begin the save timestamp advances');
     const shortGap = await evaluate(second, `(() => {
-      const s = window.__resonance.state, realNow = Date.now; let now = 1000; Date.now = () => now;
+      const s = window.__resonance.state, realNow = Date.now; let now = realNow(); Date.now = () => now;
       s.phase = 'wave'; s.wells = [{ id: 'short-gap', x: 1, y: 1, level: 1, hp: 40, maxHp: 40, linked: true }];
       const before = s.resonance, danger = JSON.stringify(s.enemies);
       Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange'));
-      now = 3000; Object.defineProperty(document, 'hidden', { configurable: true, value: false }); document.dispatchEvent(new Event('visibilitychange'));
+      now += 2000; Object.defineProperty(document, 'hidden', { configurable: true, value: false }); document.dispatchEvent(new Event('visibilitychange'));
       const once = s.resonance - before; document.dispatchEvent(new Event('visibilitychange')); Date.now = realNow;
       return { once, expected: window.__resonance.S.incomePerSecond(s) * 2, danger, after: JSON.stringify(s.enemies), paused: s.paused };
     })()`);

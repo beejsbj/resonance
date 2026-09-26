@@ -12,19 +12,28 @@ import { manage } from './bots.mjs';
 
 const seconds = Number(process.argv[2] || 12);
 const only = process.argv.slice(3);
+const WANTED = ['firstInterlude', 'firstWave', 'wave10Interlude', 'wave24Interlude', 'crisis25', 'wave26'];
+const requested = only.length ? only : WANTED;
+const unknown = requested.filter(name => !WANTED.includes(name));
+if (unknown.length) throw new Error('Unknown loudness scenario(s): ' + unknown.join(', '));
 const snap = s => JSON.parse(JSON.stringify(s, (k, v) => (k === 'relays' ? undefined : v)));
 
 // ---------- fixtures: saved runs at the moments worth hearing ----------
 
-function fixtures() {
-  const out = { firstInterlude: snap(S.newRun(S.newMeta(), 1000)) };
-  const first = S.newRun(S.newMeta(), 1000);
-  first.interlude = 0.05; // the smallest orchestra that ever fights: the starting Thread alone
-  while (!(first.phase === 'wave' && first.enemies.length >= 4)) S.step(first, 1 / 30);
-  out.firstWave = snap(first);
+function fixtures(wanted) {
+  const out = {};
+  if (wanted.includes('firstInterlude')) out.firstInterlude = snap(S.newRun(S.newMeta(), 1000));
+  if (wanted.includes('firstWave')) {
+    const first = S.newRun(S.newMeta(), 1000);
+    first.interlude = 0.05; // the smallest orchestra that ever fights: the starting Thread alone
+    while (!(first.phase === 'wave' && first.enemies.length >= 4)) S.step(first, 1 / 30);
+    out.firstWave = snap(first);
+  }
+  const later = wanted.some(name => !['firstInterlude', 'firstWave'].includes(name));
+  if (!later) return out;
   const state = S.newRun(S.newMeta(), 1000);
   let t = 0, nextManage = 0, last = state.phase;
-  while (state.phase !== 'defeated' && t < 3600 && Object.keys(out).length < 6) {
+  while (state.phase !== 'defeated' && t < 3600 && wanted.some(name => !out[name])) {
     S.step(state, 1 / 30); t += 1 / 30;
     if (t >= nextManage) { manage(state); nextManage = t + 2; }
     if (last === 'wave' && state.phase === 'interlude') {
@@ -84,47 +93,66 @@ function installMeter(run) {
 const db = x => (x > 0 ? (20 * Math.log10(x)).toFixed(1) : '-inf').padStart(6);
 const summary = m => { const w = m.windows.slice().sort((a, b) => a - b); return { peak: m.peak, rms: Math.sqrt(m.sum / Math.max(1, m.n)), p50: w[Math.floor(w.length / 2)] || 0, p90: w[Math.floor(w.length * 0.9)] || 0, over: m.over }; };
 
-const WANTED = ['firstInterlude', 'firstWave', 'wave10Interlude', 'wave24Interlude', 'crisis25', 'wave26'];
-const runs = fixtures();
-const missing = WANTED.filter(k => !runs[k] && (!only.length || only.includes(k)));
-if (missing.length) throw new Error('The bot run did not reach required fixtures: ' + missing.join(', ') + ' (placement is random; run again).');
+const runs = fixtures(requested);
+const missing = requested.filter(k => !runs[k]);
+if (missing.length) throw new Error('The bot run did not reach required fixtures: ' + missing.join(', ') + '.');
 const { chromium } = await playwright();
-const server = await serve(path.resolve('public'));
-const url = `http://127.0.0.1:${server.address().port}/play/`;
-const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 let clipped = false;
-console.log(`dBFS over ${seconds}s each; rms p50/p90 are 400 ms windows.`);
-console.log('scenario          where          voices | speaker  rms   p50   p90  peak clip | master   rms  peak');
-for (const [name, run] of Object.entries(runs)) {
-  if (only.length && !only.includes(name)) continue;
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  const page = await context.newPage();
-  page.on('pageerror', e => console.log('  page error:', e.message));
-  await page.addInitScript(installMeter, run);
-  await page.goto(url);
-  await page.click('#begin');
-  await page.waitForTimeout(600);
-  const ready = await page.evaluate(() => { const { sound } = window.__resonance; if (!sound.running) return false; window.__meter(sound.speaker, '__speaker'); window.__meter(sound.master, '__master'); return true; });
-  if (!ready) { console.log(name, 'audio did not start'); await context.close(); continue; }
-  const box = await page.locator('#stage').boundingBox();
-  const until = Date.now() + seconds * 1000;
-  while (Date.now() < until) {
-    // Play like a person in a wave: strike the threat nearest the conductor about three times a second.
-    const target = await page.evaluate(() => {
-      const { state: s, stage } = window.__resonance;
-      if (s.phase !== 'wave') return null;
-      const e = s.boss || s.enemies.slice().sort((a, b) => Math.hypot(a.x - 180, a.y - 280) - Math.hypot(b.x - 180, b.y - 280))[0];
-      return e && { x: e.x * stage.scale + stage.ox, y: e.y * stage.scale + stage.oy };
-    });
-    if (target) await page.mouse.click(box.x + target.x, box.y + target.y);
-    await page.waitForTimeout(350);
+const failures = [];
+let server, browser;
+try {
+  server = await serve(path.resolve('public'));
+  const url = `http://127.0.0.1:${server.address().port}/play/`;
+  browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+  console.log(`dBFS over ${seconds}s each; rms p50/p90 are 400 ms windows.`);
+  console.log('scenario          where          voices | speaker  rms   p50   p90  peak clip | master   rms  peak');
+  for (const name of requested) {
+    const run = runs[name];
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const pageErrors = [];
+    try {
+      const page = await context.newPage();
+      page.on('pageerror', e => { pageErrors.push(e.message); console.log('  page error:', e.message); });
+      await page.addInitScript(installMeter, run);
+      await page.goto(url);
+      await page.click('#begin');
+      await page.waitForTimeout(600);
+      const ready = await page.evaluate(() => { const { sound } = window.__resonance; if (!sound.running) return false; window.__meter(sound.speaker, '__speaker'); window.__meter(sound.master, '__master'); return true; });
+      const problems = [];
+      if (!ready) problems.push('audio did not start');
+      else {
+        const box = await page.locator('#stage').boundingBox();
+        const until = Date.now() + seconds * 1000;
+        while (Date.now() < until) {
+          // Play like a person in a wave: strike the threat nearest the conductor about three times a second.
+          const target = await page.evaluate(() => {
+            const { state: s, stage } = window.__resonance;
+            if (s.phase !== 'wave') return null;
+            const e = s.boss || s.enemies.slice().sort((a, b) => Math.hypot(a.x - 180, a.y - 280) - Math.hypot(b.x - 180, b.y - 280))[0];
+            return e && { x: e.x * stage.scale + stage.ox, y: e.y * stage.scale + stage.oy };
+          });
+          if (target) await page.mouse.click(box.x + target.x, box.y + target.y);
+          await page.waitForTimeout(350);
+        }
+        const r = await page.evaluate(() => ({ speaker: window.__speaker, master: window.__master, voices: window.__resonance.sound.active, phase: window.__resonance.state.phase, wave: window.__resonance.state.wave }));
+        const sp = summary(r.speaker), ms = summary(r.master);
+        if (!r.speaker.n) problems.push('speaker meter received no samples');
+        if (!r.master.n) problems.push('master meter received no samples');
+        clipped ||= sp.over > 0;
+        console.log(`${name.padEnd(17)} ${(r.phase + ' w' + r.wave).padEnd(14)} ${String(r.voices).padStart(6)} | ${db(sp.rms)}${db(sp.p50)}${db(sp.p90)}${db(sp.peak)} ${String(sp.over).padStart(4)} | ${db(ms.rms)}${db(ms.peak)}`);
+      }
+      if (pageErrors.length) problems.push('page error: ' + pageErrors.join('; '));
+      if (problems.length) { failures.push(`${name}: ${problems.join('; ')}`); console.error(`${name} failed: ${problems.join('; ')}`); }
+    } catch (error) {
+      failures.push(`${name}: ${error.message}`);
+      console.error(`${name} failed: ${error.message}`);
+    } finally {
+      await context.close();
+    }
   }
-  const r = await page.evaluate(() => ({ speaker: window.__speaker, master: window.__master, voices: window.__resonance.sound.active, phase: window.__resonance.state.phase, wave: window.__resonance.state.wave }));
-  const sp = summary(r.speaker), ms = summary(r.master);
-  clipped ||= sp.over > 0;
-  console.log(`${name.padEnd(17)} ${(r.phase + ' w' + r.wave).padEnd(14)} ${String(r.voices).padStart(6)} | ${db(sp.rms)}${db(sp.p50)}${db(sp.p90)}${db(sp.peak)} ${String(sp.over).padStart(4)} | ${db(ms.rms)}${db(ms.peak)}`);
-  await context.close();
+} finally {
+  await browser?.close();
+  await new Promise(resolve => server?.close(resolve) ?? resolve());
 }
-await browser.close();
-server.close();
-if (clipped) { console.log('The speaker clipped.'); process.exitCode = 1; }
+if (clipped) { console.log('The speaker clipped.'); failures.push('speaker clipped'); }
+if (failures.length) { console.error('Loudness failed: ' + failures.join(' | ')); process.exitCode = 1; }

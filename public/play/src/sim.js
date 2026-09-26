@@ -419,6 +419,19 @@ function hurtEnemy(state, e, amount, events) {
   }
 }
 
+function rewardPosition(state, boss) {
+  const origin = { x: clamp(boss.x, 30, W - 30), y: clamp(boss.y, 30, H - 30) };
+  const obstacles = [...state.wells, ...state.beings.filter(b => b.placed), ...state.sites.filter(s => !s.taken)];
+  const clear = p => obstacles.every(o => dist(o, p) >= 28);
+  if (clear(origin)) return origin;
+  let nearest = null, distance = Infinity;
+  for (let y = 30; y <= H - 30; y += 10) for (let x = 30; x <= W - 30; x += 10) {
+    const p = { x, y }, d = dist(p, origin);
+    if (d < distance && clear(p)) { nearest = p; distance = d; }
+  }
+  return nearest;
+}
+
 function hurtBoss(state, amount, events) {
   const boss = state.boss;
   if (!boss || boss.hp <= 0 || boss.shell) return;
@@ -428,11 +441,16 @@ function hurtBoss(state, amount, events) {
     state.stats.bosses += 1;
     const reward = 40 + state.wave * 8;
     earn(state, reward);
-    // The defeated Hush becomes music: a new being sleeps where it fell.
+    // Leave the reward near the fall, clear of structures that would intercept taps.
     const identities = Object.keys(BEINGS);
-    const site = { id: 's' + state.nextId++, x: clamp(boss.x, 30, W - 30), y: clamp(boss.y, 30, H - 30), kind: 'being', ring: 3, identity: identities[Math.floor(random(state) * identities.length)], discovered: false, taken: false };
-    state.sites.push(site);
-    events.push({ type: 'bossDown', t: state.time, x: boss.x, y: boss.y, reward, identity: site.identity });
+    const identity = identities[Math.floor(random(state) * identities.length)];
+    const position = rewardPosition(state, boss);
+    // In a completely occupied arena the reward joins the waiting roster instead
+    // of becoming an unreachable site. Placement remains the player's choice.
+    const site = position && { id: 's' + state.nextId++, ...position, kind: 'being', ring: 3, identity, discovered: false, taken: false };
+    if (!site) state.beings.push(makeBeing(state, identity, 0));
+    else state.sites.push(site);
+    events.push({ type: 'bossDown', t: state.time, x: boss.x, y: boss.y, reward, identity, recruited: !site });
     state.boss = null;
     const net = network(state);
     events.push(...foundEvents(state, net));

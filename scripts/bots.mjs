@@ -5,6 +5,16 @@ import { CENTER } from '../public/play/src/content.js';
 
 export const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
+const botRng = new WeakMap();
+
+function random(state) {
+  let rng = botRng.get(state);
+  if (rng === undefined) rng = state.rng;
+  rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
+  botRng.set(state, rng);
+  return rng / 4294967296;
+}
+
 function freeSpotToward(state, target) {
   // Walk from the target back toward the conductor; take the farthest placeable point.
   for (let f = 1; f >= 0.2; f -= 0.05) {
@@ -23,7 +33,7 @@ export function manage(state) {
   for (const s of state.sites) if (s.discovered && !s.taken && s.kind === 'being' && S.isCovered(state, s)) S.awaken(state, s.id);
   const frontier = state.sites.filter(s => !s.discovered).sort((a, b) => dist(a, CENTER) - dist(b, CENTER));
   for (const b of state.beings) if (!b.placed && b.hp > 0) {
-    const goal = frontier[0] || { x: CENTER.x + (Math.random() - 0.5) * 200, y: CENTER.y + (Math.random() - 0.5) * 300 };
+    const goal = frontier[0] || { x: CENTER.x + (random(state) - 0.5) * 200, y: CENTER.y + (random(state) - 0.5) * 300 };
     const p = freeSpotToward(state, goal) || freeSpotToward(state, { x: CENTER.x + 60, y: CENTER.y + 60 });
     if (p) S.place(state, b.id, p.x, p.y);
   }

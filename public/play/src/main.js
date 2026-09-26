@@ -23,6 +23,7 @@ let started = false;
 let lastAudio = 0, lastPerf = performance.now();
 let offset = 0; // audio time = sim time + offset
 let hiddenAt = 0;
+let waitingAt = 0; // wells accrue while the Begin/Return curtain is open
 let lastUi = 0;
 let ownsGame = false;
 let gameLock = null;
@@ -63,8 +64,8 @@ function loadRun() {
 function save() {
   if (!ownsGame || !state) return false;
   try {
-    // While hidden the run is not advancing, so its save is stamped at the moment it was left.
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ savedAt: hiddenAt || Date.now(), state, meta }, (k, v) => (k === 'relays' ? undefined : v)));
+    // Keep the unplayed interval recoverable across autosaves and reloads.
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ savedAt: waitingAt || hiddenAt || Date.now(), state, meta }, (k, v) => (k === 'relays' ? undefined : v)));
     return true;
   } catch {
     if (!warnedStorage) {
@@ -136,7 +137,7 @@ function react(events) {
       case 'waveClear': toast('Wave ' + e.wave + ' resolved · +' + fmt(e.reward)); break;
       case 'bossShell': banner('It closes · swipe through it', true); break;
       case 'bossBreak': banner(e.waited ? 'The shell cracks open' : 'Broken open · strike now'); break;
-      case 'bossDown': banner('The Hush becomes music'); toast('Something new sleeps where it fell.'); break;
+      case 'bossDown': banner('The Hush becomes music'); toast(e.recruited ? 'A new being waits in the roster.' : 'Something new sleeps near where it fell.'); break;
       case 'sweepWarn': banner('A sweep is coming · hold to shelter', true); break;
       case 'found': if (e.kind === 'being') toast('A sleeping ' + BEINGS[e.identity].name + ' is within reach.'); break;
       case 'disconnected': { const b = state.beings.find(x => x.id === e.id); if (b && b.hp > 0) toast(BEINGS[b.identity].name + ' lost the pulse · it plays uncoordinated.'); break; }
@@ -190,13 +191,15 @@ document.addEventListener('visibilitychange', () => {
   if (!state) return;
   if (document.hidden) { hiddenAt = Date.now(); save(); pointers.clear(); }
   else if (hiddenAt && ownsGame) {
-    const away = (Date.now() - hiddenAt) / 1000;
+    const now = Date.now();
+    const away = (now - (waitingAt || hiddenAt)) / 1000;
     hiddenAt = 0;
     if (away > 0) {
       const earned = S.settleAway(state, away);
       if (earned >= 1) toast('While you were away, the wells gathered +' + fmt(earned) + '.');
       if (away > 5 && state.phase === 'wave') { state.paused = true; banner('The Hush waited for you'); }
     }
+    if (waitingAt) waitingAt = now;
     wakeSound();
     lastAudio = sound.now; lastPerf = performance.now();
   }
@@ -513,6 +516,8 @@ $('begin').addEventListener('click', async () => {
   if (!ownsGame || !state) return;
   try { await sound.start(); } catch { toast('Sound could not start here; the game runs silently.'); }
   if (!ownsGame || !state) return;
+  if (waitingAt) awayEarned += S.settleAway(state, (Date.now() - waitingAt) / 1000);
+  waitingAt = 0;
   lastAudio = sound.now; lastPerf = performance.now();
   offset = sound.now - state.time + LATENCY;
   sound.setTempo(S.bpm(state));
@@ -560,6 +565,7 @@ requestAnimationFrame(frame);
 
 function suspendGame() {
   started = false;
+  waitingAt = 0;
   clearRosterGesture();
   state = undefined;
   meta = undefined;
@@ -587,6 +593,7 @@ function activateGame() {
   meta = loadMeta();
   state = loadRun();
   loadedSave = null;
+  waitingAt = Date.now();
   hiddenAt = document.hidden ? Date.now() : 0;
   selectedId = null; placing = null; ghost = null;
   lastBpm = S.bpm(state);

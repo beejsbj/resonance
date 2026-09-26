@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as S from '../public/play/src/sim.js';
-import { CENTER, GRID, BEINGS, CONDUCTOR, CRISIS_EVERY } from '../public/play/src/content.js';
+import { CENTER, W, H, GRID, BEINGS, CONDUCTOR, CRISIS_EVERY } from '../public/play/src/content.js';
 import { pitchFor, chordAt, degreeToMidi } from '../public/play/src/harmony.js';
 
 const run = (seed = 7) => S.newRun(S.newMeta(), seed);
@@ -204,4 +204,31 @@ test('every voice finds a pitch for any step, including the negative ones a kill
     for (let step = -40; step <= 40; step++) assert.ok(Number.isFinite(pitchFor(voice, 3, step, 2)), `${voice} step ${step}`);
   }
   for (let step = 0; step < 16; step++) assert.equal(pitchFor('spark', 1, step - 16), pitchFor('spark', 1, step), 'the figure repeats');
+});
+
+
+test('a crisis reward stays selectable when the Hush falls over a well or at the arena edge', () => {
+  for (const point of [{ x: 120, y: 300 }, { x: -10, y: 560 }]) {
+    const state = run(); state.sites = []; state.enemies = [];
+    state.wells.push({ id: 'under-boss', ...point, level: 1, hp: 40, maxHp: 40, linked: true });
+    state.boss = { ...point, hp: 1, maxHp: 1, shell: false, broken: true, exposed: 0 };
+    S.tap(state, point);
+    const reward = state.sites.at(-1);
+    assert.ok(reward.x >= 30 && reward.x <= W - 30 && reward.y >= 30 && reward.y <= H - 30);
+    reward.discovered = true;
+    assert.equal(S.tap(state, reward).select, reward.id, 'the sleeping being can be selected instead of a structure');
+  }
+});
+
+test('a crisis reward joins the waiting roster if no clear site remains', () => {
+  const state = run(); state.sites = []; state.enemies = [];
+  for (let x = 30; x <= W - 30; x += 10) for (let y = 30; y <= H - 30; y += 10) {
+    state.sites.push({ id: `occupied-${x}-${y}`, x, y, taken: false });
+  }
+  const before = state.beings.length;
+  state.boss = { x: 120, y: 300, hp: 1, maxHp: 1, shell: false, broken: true, exposed: 0 };
+  const result = S.tap(state, state.boss);
+  assert.equal(state.beings.length, before + 1);
+  assert.equal(state.beings.at(-1).placed, false);
+  assert.equal(result.events.find(e => e.type === 'bossDown').recruited, true);
 });
