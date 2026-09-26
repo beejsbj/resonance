@@ -2,7 +2,7 @@
 
 `public/play/` is the first build of Resonance as a game rather than a study. It is a portrait web game that installs as a PWA on Android. Burooj asked for the real game on 2026-09-24, with Claude taking ownership of the design. Prototype 03 and the settled direction in [product-brief.md](product-brief.md) were the seed.
 
-This build is still evidence: it does not settle the design. Where the brief or Linear left a question open, the build takes a position so the game can be played. Every such call is listed below so it can be kept, changed, or thrown out after play. Settled language stays in `CONTEXT.md` and the brief. Nothing here graduates until Burooj accepts it.
+On September 26, 2026, Burooj reported that this build plays great and chose it as the starting point for further development. That accepts the overall direction; the individual choices below remain revisable. Where the brief or Linear left a question open, the build takes a position so the game can be played. Every such call is listed below so it can be kept, changed, or thrown out after play. Settled language stays in `CONTEXT.md` and the brief.
 
 ## How it plays
 
