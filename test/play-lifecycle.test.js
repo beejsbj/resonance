@@ -75,6 +75,9 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
     const first = await tab(`localStorage.setItem('resonance-run-v1', ${JSON.stringify(JSON.stringify({ state: legacyRun, savedAt: 1000000 }))}); localStorage.setItem('resonance-meta-v1', ${JSON.stringify(JSON.stringify(legacyMeta))});`);
     await eventually(() => evaluate(first, 'window.__resonance && window.__resonance.ownsGame'), 'first tab ownership');
     assert.equal(await evaluate(first, 'window.__resonance.state.resonance'), 321, 'legacy runs remain readable');
+    const hiddenWaiter = await tab();
+    await eventually(() => evaluate(hiddenWaiter, 'document.querySelector("#begin").disabled && !window.__resonance.state'), 'hidden waiter queues');
+    await evaluate(hiddenWaiter, 'Object.defineProperty(document, "hidden", { configurable: true, value: true }); document.dispatchEvent(new Event("visibilitychange"))');
     const second = await tab();
     await eventually(() => evaluate(second, 'document.querySelector("#begin").disabled && !window.__resonance.state'), 'second tab waiting');
     await evaluate(first, 'window.__resonance.state.resonance = 777; document.querySelector("#panel button").click()');
@@ -85,6 +88,7 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
     await evaluate(first, 'window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true }))');
     await eventually(() => evaluate(second, 'window.__resonance.ownsGame && window.__resonance.state && window.__resonance.state.resonance'), 'second tab takeover');
     assert.equal(await evaluate(second, 'window.__resonance.state.resonance'), expected, 'waiter loaded the owner\'s latest save');
+    assert.equal(await evaluate(hiddenWaiter, '!window.__resonance.ownsGame && !window.__resonance.state'), true, 'the hidden waiter did not retain the lock ahead of the visible tab');
     await evaluate(first, 'window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }))');
     assert.equal(await evaluate(first, '!window.__resonance.ownsGame && !window.__resonance.state && document.querySelector("#begin").disabled'), true, 'a restored page waits without retaining a stale run');
     await cdp.send('Target.closeTarget', { targetId: first.targetId });
@@ -144,16 +148,14 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
       return before;
     })()`);
     await evaluate(second, 'window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }))');
-    await eventually(() => evaluate(second, 'window.__resonance.ownsGame'), 'hidden reload ownership');
-    assert.ok(Math.abs(await evaluate(second, 'window.__resonance.state.resonance') - hiddenSave - curtain.rate * 3) < 1e-9, 'hidden reload pays only time after Begin settlement');
-    const laterReturn = await evaluate(second, `(() => {
-      const before = window.__resonance.state.resonance;
+    assert.equal(await evaluate(second, '!window.__resonance.ownsGame && !window.__resonance.state'), true, 'a hidden restored page defers its lock claim');
+    await evaluate(second, `(() => {
       window.testNow += 2000;
       Object.defineProperty(document, 'hidden', { configurable: true, value: false });
       document.dispatchEvent(new Event('visibilitychange'));
-      return window.__resonance.state.resonance - before;
     })()`);
-    assert.ok(Math.abs(laterReturn - curtain.rate * 2) < 1e-9, 'time hidden after reload still pays');
+    await eventually(() => evaluate(second, 'window.__resonance.ownsGame'), 'visible reload ownership');
+    assert.ok(Math.abs(await evaluate(second, 'window.__resonance.state.resonance') - hiddenSave - curtain.rate * 5) < 1e-9, 'return after a deferred reload pays only time since Begin settlement');
     await evaluate(second, '(async () => { window.__resonance.sound.start = async () => {}; document.querySelector("#begin").click(); await Promise.resolve(); })()');
     const shortGap = await evaluate(second, `(() => {
       const s = window.__resonance.state, realNow = Date.now; let now = realNow(); Date.now = () => now;
@@ -187,6 +189,10 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
     })()`);
     assert.equal(failure.message, 'Progress cannot be saved on this device.');
     assert.equal(failure.unchanged, true, 'failed writes preserve the prior complete run and meta');
+    await evaluate(second, 'window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true }))');
+    await evaluate(hiddenWaiter, 'Object.defineProperty(document, "hidden", { configurable: true, value: false }); document.dispatchEvent(new Event("visibilitychange"))');
+    await eventually(() => evaluate(hiddenWaiter, 'window.__resonance.ownsGame'), 'a formerly hidden waiter can claim when visible');
+
   } finally {
     cdp?.close();
     const exited = new Promise(resolve => chrome.once('exit', resolve));

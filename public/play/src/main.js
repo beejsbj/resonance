@@ -188,6 +188,12 @@ function frame() {
 }
 
 document.addEventListener('visibilitychange', () => {
+  // A hidden waiter must not take ownership ahead of a visible tab.
+  if (!ownsGame) {
+    if (document.hidden) deferGameLock();
+    else if (!gameLock) requestGameLock();
+    return;
+  }
   if (!state) return;
   if (document.hidden) { hiddenAt = Date.now(); save(); pointers.clear(); }
   else if (hiddenAt && ownsGame) {
@@ -609,11 +615,18 @@ function activateGame() {
   renderUi(true);
 }
 
+function deferGameLock() {
+  gameLock?.release();
+  gameLock = null;
+  waitingForGame('Return to this tab to join the performance.');
+}
+
 function requestGameLock() {
+  if (document.hidden) { deferGameLock(); return; }
   gameLock = claimGameLock({
     locks: navigator.locks,
     onWaiting: () => waitingForGame('Another Resonance tab is playing. This tab will load the latest performance when it closes.'),
-    onOwner: activateGame,
+    onOwner: () => { if (document.hidden) deferGameLock(); else activateGame(); },
     onUnavailable: () => waitingForGame('This browser cannot protect saved progress across tabs. Open Resonance in an up-to-date browser over HTTPS or localhost.'),
     onError: () => waitingForGame('Resonance could not protect this performance. Close other tabs and reload.'),
   });
