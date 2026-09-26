@@ -87,7 +87,7 @@ const summary = m => { const w = m.windows.slice().sort((a, b) => a - b); return
 const WANTED = ['firstInterlude', 'firstWave', 'wave10Interlude', 'wave24Interlude', 'crisis25', 'wave26'];
 const runs = fixtures();
 const missing = WANTED.filter(k => !runs[k] && (!only.length || only.includes(k)));
-if (missing.length) console.log('The bot run did not reach: ' + missing.join(', ') + ' (placement is random; run again).');
+if (missing.length) throw new Error('The bot run did not reach required fixtures: ' + missing.join(', ') + ' (placement is random; run again).');
 const { chromium } = await playwright();
 const server = await serve(path.resolve('public'));
 const url = `http://127.0.0.1:${server.address().port}/play/`;

@@ -8,10 +8,12 @@ import { claimGameLock } from './game-lock.js';
 
 const RUN_KEY = 'resonance-run-v1';
 const META_KEY = 'resonance-meta-v1';
+const SAVE_KEY = 'resonance-save-v1';
 const LATENCY = 0.06; // seconds between a beat in the simulation and its sound; visuals wait the same
 const $ = id => document.getElementById(id);
 
 let meta;
+let loadedSave;
 let awayEarned = 0;
 let state;
 let selectedId = null;
@@ -31,13 +33,23 @@ const sound = new Sound();
 
 // ---------- persistence ----------
 
+function loadSave() {
+  try {
+    const snapshot = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (snapshot) return snapshot;
+    // Legacy saves remain readable; the next successful save migrates both
+    // objects together without deleting the old recovery copy.
+    return { ...JSON.parse(localStorage.getItem(RUN_KEY)), meta: JSON.parse(localStorage.getItem(META_KEY)) };
+  } catch { return null; }
+}
 function loadMeta() {
-  try { const m = JSON.parse(localStorage.getItem(META_KEY)); if (S.validMeta(m)) return { tutorial: 0, ...m }; } catch { /* fresh */ }
+  const m = loadedSave?.meta;
+  if (S.validMeta(m)) return { tutorial: 0, ...m };
   return { ...S.newMeta(), tutorial: 0 };
 }
 function loadRun() {
   try {
-    const saved = JSON.parse(localStorage.getItem(RUN_KEY));
+    const saved = loadedSave;
     // A fallen run is kept until a new one begins, so a reload returns to the fall screen and its echo shop.
     if (saved && S.validRun(saved.state) && (saved.state.phase !== 'defeated' || Number.isFinite(saved.state.echoesEarned))) {
       const s = saved.state;
@@ -52,8 +64,7 @@ function save() {
   if (!ownsGame || !state) return false;
   try {
     // While hidden the run is not advancing, so its save is stamped at the moment it was left.
-    localStorage.setItem(RUN_KEY, JSON.stringify({ savedAt: hiddenAt || Date.now(), state }, (k, v) => (k === 'relays' ? undefined : v)));
-    localStorage.setItem(META_KEY, JSON.stringify(meta));
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ savedAt: hiddenAt || Date.now(), state, meta }, (k, v) => (k === 'relays' ? undefined : v)));
     return true;
   } catch {
     if (!warnedStorage) {
@@ -194,6 +205,7 @@ setInterval(save, 4000);
 
 window.addEventListener('pagehide', () => {
   if (ownsGame) save();
+  clearRosterGesture();
   ownsGame = false;
   suspendGame();
   gameLock?.release();
@@ -250,7 +262,7 @@ canvas.addEventListener('pointerleave', () => { if (placing && !pointers.size) g
 
 function ghostAt(p) {
   const being = state.beings.find(b => b.id === placing);
-  return being ? { identity: being.identity, x: p.x, y: p.y, reason: S.placementReason(state, p.x, p.y, being.id) } : null;
+  return being ? { identity: being.identity, stats: S.beingStats(state, being), x: p.x, y: p.y, reason: S.placementReason(state, p.x, p.y, being.id) } : null;
 }
 // A placement that fails also ends placing, so the next touch strikes and gathers as usual.
 function tryPlace(p) {
@@ -262,23 +274,64 @@ function tryPlace(p) {
 }
 
 // Roster chips: tap to pick up, then tap the arena; or drag straight onto it.
-$('roster').addEventListener('pointerdown', e => {
+// Let the browser own a horizontal touch pan so an overflowing roster remains scrollable.
+const roster = $('roster');
+let rosterGesture = null;
+function clearRosterGesture(refresh = false) {
+  const gesture = rosterGesture;
+  if (!gesture) return;
+  window.removeEventListener('pointermove', gesture.move);
+  window.removeEventListener('pointerup', gesture.finish);
+  window.removeEventListener('pointercancel', gesture.finish);
+  rosterGesture = null;
+  ghost = null;
+  if (refresh && state) renderUi(true);
+}
+roster.addEventListener('pointerdown', e => {
+  if (!ownsGame || !state || !started) return;
   const chip = e.target.closest('[data-being]');
   if (!chip) return;
-  e.preventDefault();
-  const id = chip.dataset.being;
-  placing = placing === id ? null : id;
-  ghost = null;
-  renderUi(true);
-  if (!placing) return;
-  toast('Drag or tap inside the lit area to place it.');
-  const move = ev => { const p = stage.toWorld(ev.clientX, ev.clientY); ghost = ghostAt(p); };
-  const up = ev => {
-    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+  if (rosterGesture) return;
+  const gesture = rosterGesture = { id: e.pointerId, being: chip.dataset.being, x: e.clientX, y: e.clientY, intent: null };
+  const finish = ev => {
+    if (ev.pointerId !== gesture.id) return;
+    if (!state) { clearRosterGesture(); return; }
+    clearRosterGesture();
+    if (ev.type === 'pointercancel') {
+      if (gesture.intent === 'drag' && placing === gesture.being) placing = null;
+      if (gesture.intent === 'drag') renderUi(true);
+      return;
+    }
+    if (gesture.intent === 'scroll') return;
     const r = canvas.getBoundingClientRect();
-    if (placing && ev.clientY < r.bottom && ev.clientY > r.top && ev.clientX > r.left && ev.clientX < r.right) tryPlace(stage.toWorld(ev.clientX, ev.clientY));
+    if (gesture.intent === 'drag') {
+      if (placing && ev.type === 'pointerup' && ev.clientY < r.bottom && ev.clientY > r.top && ev.clientX > r.left && ev.clientX < r.right) tryPlace(stage.toWorld(ev.clientX, ev.clientY));
+      else renderUi(true);
+      return;
+    }
+    if (ev.type !== 'pointerup') return;
+    placing = placing === gesture.being ? null : gesture.being;
+    ghost = null;
+    renderUi(true);
+    if (placing) toast('Drag or tap inside the lit area to place it.');
   };
-  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  const move = ev => {
+    if (ev.pointerId !== gesture.id) return;
+    if (!state) { clearRosterGesture(); return; }
+    if (gesture.intent === 'scroll') return;
+    const dx = ev.clientX - gesture.x, dy = ev.clientY - gesture.y;
+    if (!gesture.intent) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 10) return;
+      gesture.intent = Math.abs(dx) >= Math.abs(dy) ? 'scroll' : 'drag';
+      if (gesture.intent === 'scroll') return;
+      placing = gesture.being;
+    }
+    ghost = ghostAt(stage.toWorld(ev.clientX, ev.clientY));
+  };
+  gesture.move = move;
+  gesture.finish = finish;
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', finish);
+  window.addEventListener('pointercancel', finish);
 });
 
 // ---------- panels ----------
@@ -395,15 +448,18 @@ function renderUi(force = false) {
   }
   uiSignature = signature;
 
-  const roster = $('roster'); roster.replaceChildren();
-  for (const b of state.beings.filter(x => !x.placed)) {
-    const chip = document.createElement('button');
-    chip.className = 'chip' + (placing === b.id ? ' placing' : ''); chip.dataset.being = b.id;
-    chip.innerHTML = '<span class="dot"></span><span></span><small></small>';
-    chip.children[0].style.color = BEINGS[b.identity].color;
-    chip.children[1].textContent = BEINGS[b.identity].name;
-    chip.children[2].textContent = b.dev.mastery > 1 || b.dev.subdivision || b.dev.octave || b.dev.reach ? `M${b.dev.mastery}` : 'place';
-    roster.append(chip);
+  const roster = $('roster');
+  if (!rosterGesture) {
+    roster.replaceChildren();
+    for (const b of state.beings.filter(x => !x.placed)) {
+      const chip = document.createElement('button');
+      chip.className = 'chip' + (placing === b.id ? ' placing' : ''); chip.dataset.being = b.id;
+      chip.innerHTML = '<span class="dot"></span><span></span><small></small>';
+      chip.children[0].style.color = BEINGS[b.identity].color;
+      chip.children[1].textContent = BEINGS[b.identity].name;
+      chip.children[2].textContent = b.dev.mastery > 1 || b.dev.subdivision || b.dev.octave || b.dev.reach ? `M${b.dev.mastery}` : 'place';
+      roster.append(chip);
+    }
   }
   const panel = $('panel'); panel.replaceChildren();
   let contents;
@@ -504,6 +560,7 @@ requestAnimationFrame(frame);
 
 function suspendGame() {
   started = false;
+  clearRosterGesture();
   state = undefined;
   meta = undefined;
   pointers.clear();
@@ -526,8 +583,10 @@ function activateGame() {
   ownsGame = true;
   warnedStorage = false;
   awayEarned = 0;
+  loadedSave = loadSave();
   meta = loadMeta();
   state = loadRun();
+  loadedSave = null;
   hiddenAt = document.hidden ? Date.now() : 0;
   selectedId = null; placing = null; ghost = null;
   lastBpm = S.bpm(state);

@@ -465,9 +465,9 @@ export class Stage {
     const def = BEINGS[g.identity];
     c.globalAlpha = 0.8;
     c.strokeStyle = g.reason ? '#ec9d92' : def.color; c.setLineDash([3, 4]); c.lineWidth = 1;
-    c.beginPath(); c.arc(g.x, g.y, def.range, 0, TAU); c.stroke();
+    c.beginPath(); c.arc(g.x, g.y, g.stats.range, 0, TAU); c.stroke();
     c.strokeStyle = g.reason ? '#ec9d92' : 'rgba(166,191,238,0.6)';
-    c.beginPath(); c.arc(g.x, g.y, def.relay, 0, TAU); c.stroke(); c.setLineDash([]);
+    c.beginPath(); c.arc(g.x, g.y, g.stats.relay, 0, TAU); c.stroke(); c.setLineDash([]);
     c.fillStyle = (g.reason ? '#ec9d92' : def.color) + '88';
     c.beginPath(); c.arc(g.x, g.y, 10, 0, TAU); c.fill();
     c.globalAlpha = 1;

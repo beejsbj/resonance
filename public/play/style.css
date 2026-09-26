@@ -38,9 +38,9 @@ button:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
 
 .dock { background: var(--ink-2); border-top: 1px solid var(--ink-4); padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; height: clamp(230px, 34dvh, 320px); flex: none; }
 .panel { overflow-y: auto; min-height: 0; flex: 1; }
-.roster { display: flex; gap: 6px; overflow-x: auto; min-height: 0; scrollbar-width: none; }
+.roster { display: flex; gap: 6px; overflow-x: auto; min-height: 0; scrollbar-width: none; touch-action: pan-x; }
 .roster:empty { display: none; }
-.chip { flex: none; display: flex; align-items: center; gap: 7px; padding: 7px 10px 7px 8px; border: 0; background: var(--ink-3); clip-path: var(--cut); touch-action: none; }
+.chip { flex: none; display: flex; align-items: center; gap: 7px; padding: 7px 10px 7px 8px; border: 0; background: var(--ink-3); clip-path: var(--cut); touch-action: pan-x; }
 .chip.placing { background: var(--ink-4); outline: 1px solid var(--amber); }
 .chip .dot { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 10px currentColor; background: currentColor; }
 .chip small { color: var(--muted); font: 10px var(--mono); }

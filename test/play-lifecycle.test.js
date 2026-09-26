@@ -6,6 +6,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
+import * as S from '../public/play/src/sim.js';
 
 const root = path.resolve('public');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml' };
@@ -59,20 +60,28 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
     }, 'Chrome debugger')).trim());
     const info = await (await fetch(`http://127.0.0.1:${debugPort}/json/version`)).json();
     cdp = new Cdp(info.webSocketDebuggerUrl);
-    const tab = async () => {
+    const tab = async (seed) => {
       const targetId = (await cdp.send('Target.createTarget', { url: 'about:blank' })).targetId;
       const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
       await cdp.send('Page.enable', {}, sessionId); await cdp.send('Runtime.enable', {}, sessionId);
+      if (seed) await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: seed }, sessionId);
       await cdp.send('Page.navigate', { url: `http://127.0.0.1:${port}/play/` }, sessionId);
       return { targetId, sessionId };
     };
     const evaluate = async (tab, expression) => (await cdp.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, tab.sessionId)).result.value;
-    const first = await tab();
+    const legacyMeta = { ...S.newMeta(), echoes: 23 };
+    const legacyRun = S.newRun(legacyMeta);
+    legacyRun.resonance = 321;
+    const first = await tab(`localStorage.setItem('resonance-run-v1', ${JSON.stringify(JSON.stringify({ state: legacyRun, savedAt: Date.now() }))}); localStorage.setItem('resonance-meta-v1', ${JSON.stringify(JSON.stringify(legacyMeta))});`);
     await eventually(() => evaluate(first, 'window.__resonance && window.__resonance.ownsGame'), 'first tab ownership');
+    assert.equal(await evaluate(first, 'window.__resonance.state.resonance'), 321, 'legacy runs remain readable');
     const second = await tab();
     await eventually(() => evaluate(second, 'document.querySelector("#begin").disabled && !window.__resonance.state'), 'second tab waiting');
     await evaluate(first, 'window.__resonance.state.resonance = 777; document.querySelector("#panel button").click()');
     const expected = await evaluate(first, 'window.__resonance.state.resonance');
+    const saved = await evaluate(first, 'JSON.parse(localStorage.getItem("resonance-save-v1"))');
+    assert.equal(saved.state.resonance, expected, 'the new snapshot contains the current run');
+    assert.equal(saved.meta.echoes, 23, 'legacy permanent progress migrates in the same snapshot');
     await evaluate(first, 'window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true }))');
     await eventually(() => evaluate(second, 'window.__resonance.ownsGame && window.__resonance.state && window.__resonance.state.resonance'), 'second tab takeover');
     assert.equal(await evaluate(second, 'window.__resonance.state.resonance'), expected, 'waiter loaded the owner\'s latest save');
@@ -92,14 +101,25 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
     assert.ok(Math.abs(shortGap.once - shortGap.expected) < 1e-9, 'the gap settled exactly once');
     assert.equal(shortGap.after, shortGap.danger, 'danger did not advance');
     assert.equal(shortGap.paused, false, 'short gaps do not trigger pause UX');
-    const storageMessage = await evaluate(second, `(() => {
+    const atomic = await evaluate(second, `(() => {
+      const setItem = Storage.prototype.setItem; let writes = 0;
+      Storage.prototype.setItem = function (...args) { if (++writes > 1) throw new Error('quota'); return setItem.apply(this, args); };
+      document.querySelector('#panel button').click();
+      Storage.prototype.setItem = setItem;
+      return { writes, snapshot: JSON.parse(localStorage.getItem('resonance-save-v1')) };
+    })()`);
+    assert.equal(atomic.writes, 1, 'a save has exactly one atomic storage write');
+    assert.equal(atomic.snapshot.meta.echoes, 23);
+    const failure = await evaluate(second, `(() => {
+      const before = localStorage.getItem('resonance-save-v1');
       const setItem = Storage.prototype.setItem;
       Storage.prototype.setItem = () => { throw new Error('blocked'); };
       document.querySelector('#panel button').click();
       Storage.prototype.setItem = setItem;
-      return document.querySelector('#banner').textContent;
+      return { message: document.querySelector('#banner').textContent, unchanged: before === localStorage.getItem('resonance-save-v1') };
     })()`);
-    assert.equal(storageMessage, 'Progress cannot be saved on this device.');
+    assert.equal(failure.message, 'Progress cannot be saved on this device.');
+    assert.equal(failure.unchanged, true, 'failed writes preserve the prior complete run and meta');
   } finally {
     cdp?.close();
     const exited = new Promise(resolve => chrome.once('exit', resolve));
