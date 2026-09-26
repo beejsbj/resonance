@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "node scripts/assemble.mjs",
+  "outputDirectory": "public",
+  "trailingSlash": true,
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/play/",
+      "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/play/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ]
+}

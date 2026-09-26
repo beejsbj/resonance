@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#0A0908">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Resonance</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="hud">
+      <div class="purse">
+        <span class="purse-amount" id="res">0</span>
+        <span class="purse-rate" id="rate">+0/s</span>
+      </div>
+      <div class="phase" id="phase" aria-live="polite">Interlude</div>
+      <div class="hud-actions">
+        <button id="sound" class="icon" aria-label="Mute sound" aria-pressed="false">♪</button>
+        <button id="pause" class="icon" aria-label="Pause">❚❚</button>
+      </div>
+    </header>
+    <main class="arena">
+      <canvas id="stage" aria-label="The arena. Tap to gather and strike, swipe to push, hold to shelter."></canvas>
+      <div id="banner" class="banner" aria-live="polite"></div>
+      <div id="hint" class="hint" hidden></div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </main>
+    <footer class="dock">
+      <div id="roster" class="roster" aria-label="Beings waiting to be placed"></div>
+      <div id="panel" class="panel"></div>
+    </footer>
+  </div>
+
+  <div id="curtain" class="overlay">
+    <div class="sheet">
+      <p class="eyebrow">A MUSICAL ORCHESTRA DEFENSE</p>
+      <h1>Resonance</h1>
+      <p id="curtain-text">The world has gone quiet. You are its conductor: gather what still sings, wake the beings that sleep in it, and hold the Hush back with music.</p>
+      <button id="begin" class="primary">Begin</button>
+      <p class="fine">Best with sound. Headphones make the arrangement easier to hear.</p>
+    </div>
+  </div>
+  <div id="motif" class="overlay" hidden><div class="sheet"><p class="eyebrow">A MOTIF FOR THIS PERFORMANCE</p><h2>Choose one</h2><div id="motif-options" class="choices"></div></div></div>
+  <div id="fall" class="overlay" hidden><div class="sheet"><p class="eyebrow">THE CONDUCTOR FALLS</p><h2 id="fall-title">The performance ends</h2><p id="fall-text"></p><h3>Echoes</h3><p class="fine">Echoes remain after every performance. Spend them on a stronger beginning.</p><div id="echo-shop" class="choices"></div><button id="again" class="primary">Begin a new performance</button></div></div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

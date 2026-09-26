@@ -8,19 +8,23 @@ The shared rhythmic clock against which mining, instrument actions, touch timing
 
 ## Resonance
 
-The prototype's provisional spendable resource, earned actively through touch and automatically through mining. Its final fiction and name remain unsettled.
+The provisional name for the spendable resource earned through active touch and automatic production, and invested in upgrades. Its precise automatic source remains under discussion as gathering and recruitment take shape.
+
+## Dormant musical potential
+
+The world's latent capacity for music, present at particular locations and awakened through gathering.
 
 ## Active touch
 
-A conductor tap that always earns Resonance during play and may additionally support a nearby part of the orchestra. Rhythmic accuracy may add a capped bonus but is not required for income.
+A conductor tap that earns Resonance during play and can directly attack and damage enemies, as well as support the orchestra. Rhythmic accuracy may add a capped bonus but is not required for income.
 
 ## Conductor power
 
-A supportive intervention performed by tapping, swiping, holding, or using voice. It belongs to the conductor rather than to any instrument and remains distinct from automatic instrument actions.
+An intervention performed by tapping, swiping, holding, or using voice, including direct tap attacks and orchestra support. It belongs to the conductor rather than to any instrument and remains distinct from automatic instrument actions.
 
 ## Instrument
 
-A stable musical and defensive identity that performs automatically in the orchestra. Development can alter how it plays, but one instrument does not upgrade into a different instrument.
+An amorphous musical being with a stable musical and defensive identity that performs automatically when placed in the orchestra. Development can alter how it plays, but one instrument does not upgrade into a different instrument.
 
 ## Parallel instrument
 
@@ -32,7 +36,11 @@ An improvement or specialization that changes an instrument's mastery, beat divi
 
 ## Recruitment
 
-Adding another independently present musician or instrument to the orchestra. Headcount is capacity, not a quality level of an existing instrument.
+Adding a discovered musical being to the player's available roster. Recruitment is distinct from placing that being in the active orchestra or developing its abilities.
+
+## Conductor pulse
+
+The conductor's coordinating pulse, carried outward through nearby entities. Proximity allows the orchestra's connection to extend beyond the conductor's immediate surroundings.
 
 ## Arrangement
 
@@ -44,7 +52,7 @@ The complete defensive arrangement of instruments and their relationships across
 
 ## Mine
 
-A base structure that produces resources on a division of the global beat and continues producing while the player is away. Offline time does not advance danger.
+The provisional name for a gathering structure placed at a site of dormant musical potential. It produces resources on a division of the global beat, including while the player is away without advancing danger.
 
 ## Crisis
 
