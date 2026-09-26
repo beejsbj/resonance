@@ -516,8 +516,12 @@ $('begin').addEventListener('click', async () => {
   if (!ownsGame || !state) return;
   try { await sound.start(); } catch { toast('Sound could not start here; the game runs silently.'); }
   if (!ownsGame || !state) return;
-  if (waitingAt) awayEarned += S.settleAway(state, (Date.now() - waitingAt) / 1000);
+  const now = Date.now();
+  if (waitingAt) awayEarned += S.settleAway(state, (now - waitingAt) / 1000);
   waitingAt = 0;
+  // Audio startup can finish after the page hides. Only the time after this
+  // settlement remains unpaid, including in saves written before returning.
+  hiddenAt = document.hidden ? now : 0;
   lastAudio = sound.now; lastPerf = performance.now();
   offset = sound.now - state.time + LATENCY;
   sound.setTempo(S.bpm(state));

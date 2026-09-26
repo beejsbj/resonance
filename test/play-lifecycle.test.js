@@ -112,6 +112,49 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
     assert.ok(Math.abs(begin.earned - curtain.rate * 6) < 1e-9, 'Begin settles only the remaining curtain time');
     assert.equal(begin.danger, begin.after, 'curtain time does not advance danger');
     assert.equal(begin.savedAt, 1020000, 'after Begin the save timestamp advances');
+    // Restart into the curtain, then hide while audio startup is still pending.
+    await evaluate(second, 'window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true }))');
+    await evaluate(second, 'window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }))');
+    await eventually(() => evaluate(second, 'window.__resonance.ownsGame'), 'pending audio ownership');
+    const hiddenBegin = await evaluate(second, `(async () => {
+      const s = window.__resonance.state, before = s.resonance;
+      window.testNow += 6000;
+      window.__resonance.sound.start = async () => {
+        Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+        document.dispatchEvent(new Event('visibilitychange')); window.testNow += 2000;
+      };
+      document.querySelector('#begin').click(); await Promise.resolve(); window.testAutosave();
+      const paid = s.resonance - before, savedAt = JSON.parse(localStorage.getItem('resonance-save-v1')).savedAt;
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+      document.dispatchEvent(new Event('visibilitychange'));
+      return { paid, total: s.resonance - before, savedAt, now: Date.now() };
+    })()`);
+    assert.ok(Math.abs(hiddenBegin.paid - curtain.rate * 8) < 1e-9, 'Begin includes time hidden during audio startup');
+    assert.equal(hiddenBegin.total, hiddenBegin.paid, 'return at the settlement time pays nothing twice');
+    assert.equal(hiddenBegin.savedAt, hiddenBegin.now, 'a hidden autosave is stamped through the settled time');
+    // Repeat the transition, but reload while still hidden and return later.
+    await evaluate(second, 'window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true }))');
+    await evaluate(second, 'window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }))');
+    await eventually(() => evaluate(second, 'window.__resonance.ownsGame'), 'second pending audio ownership');
+    const hiddenSave = await evaluate(second, `(async () => {
+      document.querySelector('#begin').click(); await Promise.resolve(); window.testAutosave();
+      const before = window.__resonance.state.resonance;
+      window.testNow += 3000;
+      window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+      return before;
+    })()`);
+    await evaluate(second, 'window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }))');
+    await eventually(() => evaluate(second, 'window.__resonance.ownsGame'), 'hidden reload ownership');
+    assert.ok(Math.abs(await evaluate(second, 'window.__resonance.state.resonance') - hiddenSave - curtain.rate * 3) < 1e-9, 'hidden reload pays only time after Begin settlement');
+    const laterReturn = await evaluate(second, `(() => {
+      const before = window.__resonance.state.resonance;
+      window.testNow += 2000;
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+      document.dispatchEvent(new Event('visibilitychange'));
+      return window.__resonance.state.resonance - before;
+    })()`);
+    assert.ok(Math.abs(laterReturn - curtain.rate * 2) < 1e-9, 'time hidden after reload still pays');
+    await evaluate(second, '(async () => { window.__resonance.sound.start = async () => {}; document.querySelector("#begin").click(); await Promise.resolve(); })()');
     const shortGap = await evaluate(second, `(() => {
       const s = window.__resonance.state, realNow = Date.now; let now = realNow(); Date.now = () => now;
       s.phase = 'wave'; s.wells = [{ id: 'short-gap', x: 1, y: 1, level: 1, hp: 40, maxHp: 40, linked: true }];
