@@ -28,7 +28,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Lint (oxlint, type-aware: also reports TypeScript errors)
+      - name: Lint (oxlint is type-aware and also reports TypeScript errors)
         run: npm run lint
       - name: Formatting (files in .oxfmtrc.json ignorePatterns are the baseline)
         run: npm run format:check
