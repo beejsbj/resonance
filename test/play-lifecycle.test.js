@@ -197,6 +197,6 @@ test('the second tab waits, takes over fresh state, and settles a short absence 
     cdp?.close();
     const exited = new Promise(resolve => chrome.once('exit', resolve));
     chrome.kill(); await exited;
-    await new Promise(resolve => server.close(resolve)); await rm(profile, { recursive: true, force: true });
+    await new Promise(resolve => server.close(resolve)); await wait(100); await rm(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 });
