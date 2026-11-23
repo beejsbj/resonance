@@ -6,6 +6,7 @@ Resonance is still in wayfinding. Linear holds live work; this repository holds 
 - **Wayfinding, specification, or tickets:** read [docs/agents/wayfinding-entry.md](docs/agents/wayfinding-entry.md), [docs/agents/sessions.md](docs/agents/sessions.md), and [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md). Use BJS-417 as the canonical map.
 - **Prototype work or evaluation:** read [docs/prototype.md](docs/prototype.md). Preserve its role as evidence.
 - **Game build:** read [docs/game.md](docs/game.md) before changing `public/play/`. It lists which mechanics are provisional calls rather than settled decisions. Run `npm test` and `npm run balance` after rule or number changes.
+- **Checks and PR gates:** read [docs/checks.md](docs/checks.md) before changing CI, hooks, `.oxlintrc.json` or `.oxfmtrc.json`. Every PR description needs a `## Verification` section; a PR that deletes, skips or loosens a test needs a `Test change: <why>` line. Run `npm run lint`, `npm run format:check` and `npm test` before you push.
 - **Workshop reference:** the [workshop branch](https://github.com/beejsbj/resonance/tree/workshop) preserves both workshop PRs and their research. Focus development on the game.
 - **Preview hosting:** push code to the Resonance GitHub repository and use Vercel previews. Burooj explicitly rejected ChatGPT Sites for this project, especially the visual workshop; the existing `.openai/hosting.json` is legacy configuration, not authorization to publish there.
 

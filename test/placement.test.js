@@ -48,8 +48,8 @@ class Cdp {
   close() { this.ws.close(); }
 }
 
-async function eventually(read, description) {
-  for (let i = 0; i < 100; i++) { const value = await read(); if (value) return value; await wait(25); }
+async function eventually(read, description, polls = 100) {
+  for (let i = 0; i < polls; i++) { const value = await read(); if (value) return value; await wait(25); }
   throw new Error('Timed out waiting for ' + description);
 }
 
@@ -61,7 +61,7 @@ test('touch gestures scroll the roster, then select, tap-place, and drag-place b
   try {
     const debugPort = Number((await eventually(async () => {
       try { return (await readFile(path.join(profile, 'DevToolsActivePort'), 'utf8')).split('\n')[0]; } catch { return ''; }
-    }, 'Chrome debugger')).trim());
+    }, 'Chrome debugger', 1200)).trim());
     const info = await (await fetch(`http://127.0.0.1:${debugPort}/json/version`)).json();
     cdp = new Cdp(info.webSocketDebuggerUrl);
     const targetId = (await cdp.send('Target.createTarget', { url: 'about:blank' })).targetId;

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Pre-commit: lint, format check on the staged files and the test suite (scripts/pre-commit.mjs).
+# Installed by `npm ci` (scripts/install-hooks.mjs sets core.hooksPath).
+# Skip once with `git commit --no-verify`; CI runs the same checks and the full suite.
+exec node "$(git rev-parse --show-toplevel)/scripts/pre-commit.mjs"
