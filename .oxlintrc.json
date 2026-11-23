@@ -61,7 +61,19 @@
       }
     },
     {
-      "files": ["components/ui/**", "hooks/use-mobile.ts"],
+      "files": [
+        "components/ui/breadcrumb.tsx",
+        "components/ui/button-group.tsx",
+        "components/ui/carousel.tsx",
+        "components/ui/field.tsx",
+        "components/ui/input-group.tsx",
+        "components/ui/input-otp.tsx",
+        "components/ui/item.tsx",
+        "components/ui/label.tsx",
+        "components/ui/pagination.tsx",
+        "components/ui/spinner.tsx",
+        "hooks/use-mobile.ts"
+      ],
       "rules": {
         "jsx-a11y/prefer-tag-over-role": "off",
         "jsx-a11y/click-events-have-key-events": "off",

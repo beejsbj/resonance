@@ -4,8 +4,9 @@ import { plan } from './pre-commit.mjs';
 
 const names = (files) => plan(files, () => true).map((step) => step.name);
 
-test('docs and assets alone skip every check', () => {
-  assert.deepEqual(names(['docs/game.md', 'README.md', 'LICENSE']), []);
+test('docs are only format-checked; assets and LICENSE run nothing', () => {
+  assert.deepEqual(names(['docs/game.md', 'README.md']), ['format']);
+  assert.deepEqual(names(['LICENSE']), []);
   assert.deepEqual(names(['public/play/icon.png']), []);
 });
 

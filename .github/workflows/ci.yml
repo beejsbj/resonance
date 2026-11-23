@@ -32,7 +32,9 @@ jobs:
         run: npm run lint
       - name: Formatting (files in .oxfmtrc.json ignorePatterns are the baseline)
         run: npm run format:check
-      # The suite includes two tests that drive headless Chrome (preinstalled on ubuntu-latest).
+      # The suite includes two tests that drive headless Chrome; they skip silently without it, so fail here instead.
+      - name: Chrome is present
+        run: google-chrome --version
       - name: Tests
         run: npm test
       - name: Build

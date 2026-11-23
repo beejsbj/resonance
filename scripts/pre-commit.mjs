@@ -9,7 +9,7 @@ import { dirname, resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const FORMATTABLE = /\.(?:[cm]?[jt]sx?|json|css|html)$/;
+const FORMATTABLE = /\.(?:[cm]?[jt]sx?|json|css|html|md)$/;
 const NOT_CODE =
   /\.(?:md|mdx|txt|png|jpe?g|svg|webp|ico|woff2?|webmanifest)$|^docs\/|^LICENSE$/;
 
@@ -23,16 +23,18 @@ export function stagedFiles() {
     .filter(Boolean);
 }
 
-/** The checks to run for a set of staged files, in order. Empty when only docs or assets are staged. */
+/** The checks to run for a set of staged files, in order. Docs (markdown) are format-checked but skip lint and tests; assets alone run nothing. */
 export function plan(
   files,
   exists = (path) => existsSync(resolve(root, path)),
 ) {
-  if (!files.some((file) => !NOT_CODE.test(file))) return [];
+  const code = files.some((file) => !NOT_CODE.test(file));
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   const format = files.filter((file) => FORMATTABLE.test(file) && exists(file));
   return [
-    { name: 'lint', command: npm, args: ['run', '--silent', 'lint'] },
+    ...(code
+      ? [{ name: 'lint', command: npm, args: ['run', '--silent', 'lint'] }]
+      : []),
     ...(format.length
       ? [
           {
@@ -49,7 +51,9 @@ export function plan(
           },
         ]
       : []),
-    { name: 'tests', command: npm, args: ['test', '--silent'] },
+    ...(code
+      ? [{ name: 'tests', command: npm, args: ['test', '--silent'] }]
+      : []),
   ];
 }
 

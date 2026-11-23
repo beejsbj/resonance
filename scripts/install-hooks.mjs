@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Point git at the tracked hooks in .githooks. Runs from `prepare` (bun install).
+// Point git at the tracked hooks in .githooks. Runs from `prepare` (npm ci).
 // Quiet no-op in CI, outside a git checkout, or when another hooksPath is already set.
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
