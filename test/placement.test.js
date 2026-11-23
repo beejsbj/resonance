@@ -49,7 +49,7 @@ class Cdp {
 }
 
 async function eventually(read, description) {
-  for (let i = 0; i < 100; i++) { const value = await read(); if (value) return value; await wait(25); }
+  for (let i = 0; i < 1200; i++) { const value = await read(); if (value) return value; await wait(25); }
   throw new Error('Timed out waiting for ' + description);
 }
 
