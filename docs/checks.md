@@ -2,13 +2,13 @@
 
 What runs where, so a change is checked before it merges and a PR carries its evidence.
 
-| Where | What runs | Source |
-|---|---|---|
-| `git commit` (pre-commit hook) | `npm run lint`, `format:check` on the staged files, and `npm test`. Docs-only commits skip all three. | `.githooks/pre-commit`, `scripts/pre-commit.mjs` |
-| Every PR and push to `main` | `ci`: `npm ci`, lint, format check, full `npm test`, `npm run build` | `.github/workflows/ci.yml` |
-| Every PR | `verification-section`, `test-integrity` (re-run when the description is edited) | `.github/workflows/pr-gates.yml`, `scripts/pr-gates/` |
-| Every PR and push to `main` | `privacy-scan`: personal paths, emails and identities in what the PR adds (the whole tree on `main`), and a missing `LICENSE` | `.github/workflows/privacy.yml`, `scripts/privacy/` |
-| Every PR | `review-evidence`: every review thread resolved, with a reply that shows why | `.github/workflows/review-evidence.yml` |
+| Where                          | What runs                                                                                                                     | Source                                                |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `git commit` (pre-commit hook) | `npm run lint`, `format:check` on the staged files, and `npm test`. Docs-only commits skip all three.                         | `.githooks/pre-commit`, `scripts/pre-commit.mjs`      |
+| Every PR and push to `main`    | `ci`: `npm ci`, lint, format check, full `npm test`, `npm run build`                                                          | `.github/workflows/ci.yml`                            |
+| Every PR                       | `verification-section`, `test-integrity` (re-run when the description is edited)                                              | `.github/workflows/pr-gates.yml`, `scripts/pr-gates/` |
+| Every PR and push to `main`    | `privacy-scan`: personal paths, emails and identities in what the PR adds (the whole tree on `main`), and a missing `LICENSE` | `.github/workflows/privacy.yml`, `scripts/privacy/`   |
+| Every PR                       | `review-evidence`: every review thread resolved, with a reply that shows why                                                  | `.github/workflows/review-evidence.yml`               |
 
 ## Types, lint and format
 
