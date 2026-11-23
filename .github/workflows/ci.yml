@@ -1,0 +1,39 @@
+# CI: lint, formatting, the full test suite and the build.
+# One job so one check name ("ci") is required. No path filters: a required check that skips never reports.
+# The build needs no Cloudflare or Vercel credentials; none are passed to this workflow.
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Lint (oxlint, type-aware: also reports TypeScript errors)
+        run: npm run lint
+      - name: Formatting (files in .oxfmtrc.json ignorePatterns are the baseline)
+        run: npm run format:check
+      # The suite includes two tests that drive headless Chrome (preinstalled on ubuntu-latest).
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build

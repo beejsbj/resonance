@@ -12,9 +12,11 @@
     "lint": "oxlint",
     "format": "oxfmt",
     "assemble": "node scripts/assemble.mjs",
-    "test": "node --test test/*.test.js",
+    "test": "node --test test/*.test.js scripts/pre-commit.test.mjs scripts/pr-gates/pr-gates.test.mjs scripts/privacy/privacy-scan.test.mjs",
     "balance": "node scripts/balance.mjs",
-    "loudness": "node scripts/loudness.mjs"
+    "loudness": "node scripts/loudness.mjs",
+    "format:check": "oxfmt --check",
+    "prepare": "node scripts/install-hooks.mjs"
   },
   "dependencies": {
     "react": "19.2.6",
