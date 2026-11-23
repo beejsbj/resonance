@@ -20,7 +20,7 @@ test('staged code runs lint, format on the staged files, and the suite', () => {
 
 test('format is passed only the staged files that still exist', () => {
   const [, format] = plan(
-    ['a.js', 'gone.js', 'notes.md'],
+    ['a.js', 'gone.js', 'icon.png'],
     (p) => p !== 'gone.js',
   );
   assert.deepEqual(format.args.slice(-1), ['a.js']);
