@@ -1,1 +1,1 @@
-Practice: a made-up address fake.person@example.com
+Practice: a made-up address fake.person@madeup-domain.dev
